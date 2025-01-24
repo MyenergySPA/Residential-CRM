@@ -1,4 +1,0 @@
-if([tipo_opportunità]="REDEN",
-  list(round(11000)),
-  list(round(if([prezzo offerta appros. - tutto incluso]/2<[massimale]/2,[prezzo offerta appros. - tutto incluso]/2,[massimale]/2)))
-  )
