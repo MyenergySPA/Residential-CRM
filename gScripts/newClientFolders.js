@@ -1,5 +1,5 @@
 /**
- * Script  per la creazione di cartelle Google Drive legate a opportunità specifiche
+ * Script per la creazione di cartelle Google Drive legate a opportunità specifiche
  * L'obiettivo dello script è creare una cartella principale e delle sottocartelle (progetto, documenti, allegati, contratto) 
  * per ogni cliente/opportunità, e poi inserire i link di tali cartelle in un foglio Google Sheets.
  *
@@ -21,10 +21,11 @@
  * @param {string} cognome - Cognome del cliente.
  * @returns {Object} - Ritorna gli URL della cartella principale e delle sottocartelle.
  */
-function creaCartelle(tipoOpportunita, id, yy, nome, cognome) {
-  Logger.log('Inizio della funzione creaCartelle');
+function newClientFolders(tipoOpportunita, id, yy, nome, cognome) {
+  Logger.log('Inizio della funzione newClientFolders');
   
-  const parentFolderId = "1kpBsmlPAaeCFWvgCEIw38tEk5Q-xQpH_"; // ID della cartella madre
+  //da modificare sostituendo con variabile globale
+  const parentFolderId = "1kpBsmlPAaeCFWvgCEIw38tEk5Q-xQpH_"; // main folder Id, containing all clients' offers
   const parentFolder = DriveApp.getFolderById(parentFolderId);
   
   const folderName = `${tipoOpportunita}-${id}-${yy} ${nome} ${cognome}`; // Nome della cartella
@@ -59,8 +60,9 @@ function creaCartelle(tipoOpportunita, id, yy, nome, cognome) {
     });
   }
   
-  // Aggiorna il foglio di calcolo con i link
-  aggiornaFoglioConURL("1_QEo5ynx_29j3I3uJJff5g7ZzGZJnPcIarIXfr5O2gQ", "cronologia", id, mainFolderUrl, subfolderUrls);
+  // Aggiorna il foglio di calcolo con i link 
+  // (da modificare con variabili globali al posto di id e nome foglio)
+  foldersUrl("1_QEo5ynx_29j3I3uJJff5g7ZzGZJnPcIarIXfr5O2gQ", "cronologia", id, mainFolderUrl, subfolderUrls);
   
   return { mainFolderUrl: mainFolderUrl, subfolderUrls: subfolderUrls };
 }
@@ -74,7 +76,7 @@ function creaCartelle(tipoOpportunita, id, yy, nome, cognome) {
  * @param {string} mainFolderUrl - L'URL della cartella principale.
  * @param {Object} subfolderUrls - Gli URL delle sottocartelle (progetto, documenti, allegati, contratto).
  */
-function aggiornaFoglioConURL(sheetId, sheetName, id, mainFolderUrl, subfolderUrls) {
+function foldersUrl(sheetId, sheetName, id, mainFolderUrl, subfolderUrls) {
   Logger.log('Inizio della funzione aggiornaFoglioConURL');
   
   const sheet = SpreadsheetApp.openById(sheetId).getSheetByName(sheetName);
