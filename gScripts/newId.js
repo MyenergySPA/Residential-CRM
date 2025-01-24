@@ -1,10 +1,10 @@
-function generaID() {
+function newId() {
   Logger.log('Inizio della funzione generaID');
 
-  // Imposta l'ID del foglio e il nome del foglio
+  // Imposta l'ID del foglio "database CRM" e il nome del foglio
   var sheetID = '1_QEo5ynx_29j3I3uJJff5g7ZzGZJnPcIarIXfr5O2gQ';
   var sheetName = 'cronologia';
-  Logger.log('ID del foglio: ' + sheetID);
+  Logger.log('sheet "database CRM" id: ' + sheetID);
   Logger.log('Nome del foglio: ' + sheetName);
   
   var sheet = SpreadsheetApp.openById(sheetID).getSheetByName(sheetName);
