@@ -20,7 +20,7 @@ function doGet(e) {
     // Restituisci un HTML con un pulsante per chiudere la scheda
     var htmlOutput = HtmlService.createHtmlOutput(
       '<html><body>' +
-      "<p> La bozza email è stata creata nella tua casella di posta. L'offerta è in generazione nella cartella drive del cliente. Puoi chiudere questa scheda. </p>" +
+      "<p> La bozza email è stata creata nella tua casella di posta. Puoi chiudere questa scheda. </p>" +
       '</body></html>'
     );
 
@@ -59,7 +59,7 @@ function sendCustomEmail(recipiente, nome, id) {
     <br><br>
 
       <!-- Saluto personalizzato -->
-      <p style="font-weight: bold; color: #2270a8; margin-top: 20px;">Ciao, ${nome}!</p>
+      <p style="font-weight: bold; color: #2270a8; margin-top: 20px;">Buongiorno, ${nome}!</p>
 
       <p>Siamo lieti di annunciarti che la tua <b> offerta personalizzata </b> è ora pronta! Puoi trovarla in <b> allegato </b> a questa email.</p>
 

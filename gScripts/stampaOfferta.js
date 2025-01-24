@@ -1,6 +1,6 @@
 /**
  * ==============================================
- *        SCRIPT DI GENERAZIONE OFFERTA V2
+ *        SCRIPT DI GENERAZIONE OFFERTA
  * ==============================================
  *
  * Questo script automatizza la generazione di documenti di offerta
@@ -12,15 +12,9 @@
  * Autore: Luca
  * Link GPT: https://chatgpt.com/c/33d84469-fd54-4ff4-a0e5-0a3a947a185a
  * Data: 22-08-24
- * Versione: 5.1
+ * Versione: 5.2
  */
 
-/** ===============================
- *       IMPORTAZIONE LIBRERIE
- *  ===============================
- */
-// Importa eventuali librerie esterne se necessarie
-// Esempio: const moment = require('moment');
 
 /** ===============================
  *       COSTANTI GLOBALI
@@ -39,7 +33,17 @@ const TEMPLATES = {
 };
 
 //nome del file dati tecnici creato per il cliente
-const nomeFileDatiTecnici = 'dati tecnici v4.1';
+const nomeFileDatiTecnici = 'dati tecnici 5.8';
+
+// ID del modello di base del foglio "dati tecnici
+const DATI_TECNICI_TEMPLATE_ID = '1cmiPctIhVJu3xA8jqnOYO0eXSBBmWkTBTUkEko1GLFs';
+
+// ID del database CRM
+const CRMdatabase = SpreadsheetApp.openById('1_QEo5ynx_29j3I3uJJff5g7ZzGZJnPcIarIXfr5O2gQ'); 
+
+// Nome del foglio con le offerte
+const sheetOfferte = CRMdatabase.getSheetByName('offerte');
+
 
 /** ===============================
 *       FUNZIONI PRINCIPALI
@@ -57,13 +61,12 @@ const nomeFileDatiTecnici = 'dati tecnici v4.1';
 // Funzione principale
 function stampaOffertaV2(appID, tipo_opportunita, id, yy, nome, cognome, indirizzo, telefono, email, numero_moduli, numero_inverter, marca_moduli, 
                       marca_inverter, numero_batteria, capacita_batteria, totale_capacita_batterie, marca_batteria, tetto, 
-                      potenza_impianto, produzione_impianto, alberi, testo_aggiuntivo, tipo_pagamento, 
+                      potenza_impianto, alberi, testo_aggiuntivo, tipo_pagamento, 
                       condizione_pagamento_1, condizione_pagamento_2, condizione_pagamento_3, condizione_pagamento_4, imponibile_offerta,
                       iva_offerta, prezzo_offerta, cartella, anni_finanziamento, esposizione, area_m2_impianto, 
                       numero_colonnina_74kw, numero_colonnina_22kw, numero_ottimizzatori, marca_ottimizzatori, numero_linea_vita, 
-                      scheda_tecnica_moduli, scheda_tecnica_inverter, scheda_tecnica_batterie, scheda_tecnica_ottimizzatori, 
-                      detrazione, consumi_annui, 
-                      profilo_di_consumo, provincia, prezzo_energia, rata_mensile, numero_rate_mensili, anni_finanziamento) {
+                      scheda_tecnica_moduli, scheda_tecnica_inverter, scheda_tecnica_batterie, scheda_tecnica_ottimizzatori, consumi_annui, 
+                      profilo_di_consumo, provincia, prezzo_energia, numero_rate_mensili, anni_finanziamento, durata_incentivo) {
 
 Logger.log('Avvio funzione stampaOffertaV2 per appID: ' + appID);
 
@@ -91,7 +94,7 @@ Logger.log('Dati documenti: ' + JSON.stringify(datiDocumento));
 // Se l'opportunità non è di tipo "MAT", esegue operazioni aggiuntive
 if (tipo_opportunita !== "MAT") {
   Logger.log('Esecuzione operazioni aggiuntive per tipo_opportunita: ' + tipo_opportunita);
-  processAdditionalOperations(appID, cartella, consumi_annui, profilo_di_consumo, provincia, esposizione);
+  processAdditionalOperations(appID, cartella, consumi_annui, profilo_di_consumo, provincia, esposizione, prezzo_energia);
 }
 
 
@@ -105,14 +108,14 @@ if (fileDatiTecnici.hasNext()) {
       nuovoFileDatiTecnici = SpreadsheetApp.openById(fileDatiTecnici.next().getId());
       Logger.log('File dati tecnici esistente trovato e aperto: ' + nuovoFileDatiTecnici.getId());
 } else {
-      var modelloDatiTecnici = DriveApp.getFileById('1cPaLSSNlz5snyD4q3vBCLlpIGsKtiOaKrvsmoi_8SCk').makeCopy(nomeFileDatiTecnici, DriveApp.getFolderById(cartellaProgettoId));
+      var modelloDatiTecnici = DriveApp.getFileById(DATI_TECNICI_TEMPLATE_ID).makeCopy(nomeFileDatiTecnici, DriveApp.getFolderById(cartellaProgettoId));
       nuovoFileDatiTecnici = SpreadsheetApp.openById(modelloDatiTecnici.getId());
       Logger.log('Nuovo file dati tecnici creato: ' + nuovoFileDatiTecnici.getId());
 }
 
   
 // Chiamata per catturare i risultati dell'analisi energetica
-  const energyAnalysisResults = processEnergyAnalysis(nuovoFileDatiTecnici, consumi_annui, profilo_di_consumo, provincia, esposizione, appID);
+  const energyAnalysisResults = processEnergyAnalysis(nuovoFileDatiTecnici, consumi_annui, profilo_di_consumo, provincia, esposizione, prezzo_energia, appID);
 
 // Compila i documenti dell'offerta sostituendo i segnaposto con i valori corretti
 datiDocumento.forEach(dato => {
@@ -120,18 +123,22 @@ datiDocumento.forEach(dato => {
   const corpo = doc.getBody();
   let mappaturaSegnapostov2 = createPlaceholderMapping({
       tipo_opportunita, id, yy, nome, cognome, indirizzo, telefono, email, dataOggi, numero_moduli, marca_moduli, numero_inverter, 
-      marca_inverter, numero_batteria, capacita_batteria, totale_capacita_batterie, marca_batteria, tetto, potenza_impianto, 
-      produzione_impianto, alberi, testo_aggiuntivo, tipo_pagamento, condizione_pagamento_1, condizione_pagamento_2, 
+      marca_inverter, numero_batteria, capacita_batteria, totale_capacita_batterie, marca_batteria, tetto, potenza_impianto, alberi, testo_aggiuntivo, tipo_pagamento, condizione_pagamento_1, condizione_pagamento_2, 
       condizione_pagamento_3, condizione_pagamento_4, imponibile_offerta, iva_offerta, prezzo_offerta, anni_finanziamento, 
-      rata_mensile, numero_rate_mensili, esposizione, area_m2_impianto, scheda_tecnica_moduli, scheda_tecnica_inverter, 
+      esposizione, area_m2_impianto, scheda_tecnica_moduli, scheda_tecnica_inverter, 
       scheda_tecnica_batterie, scheda_tecnica_ottimizzatori, numero_colonnina_74kw, numero_colonnina_22kw, numero_ottimizzatori, 
-      marca_ottimizzatori, numero_linea_vita, detrazione, 
+      marca_ottimizzatori, numero_linea_vita, prezzo_energia, numero_rate_mensili, anni_finanziamento, durata_incentivo,
+
+      percentuale_risparmio_energetico: energyAnalysisResults.percentuale_risparmio_energetico,
       anni_ritorno_investimento: energyAnalysisResults.anni_ritorno_investimento,
       utile_25_anni: energyAnalysisResults.utile_25_anni,
       percentuale_autoconsumo: energyAnalysisResults.percentuale_autoconsumo,
       media_vendita: energyAnalysisResults.media_vendita,
-      prezzo_energia, 
-      percentuale_risparmio_energetico: energyAnalysisResults.percentuale_risparmio_energetico
+      detrazione: energyAnalysisResults.detrazione,
+      massimale: energyAnalysisResults.massimale,
+      rata_mensile: energyAnalysisResults.rata_mensile,
+      produzione_primo_anno: energyAnalysisResults.produzione_primo_anno
+
   });
 
   replacePlaceholders(corpo, mappaturaSegnapostov2);
@@ -153,6 +160,22 @@ Logger.log('Fine esecuzione funzione stampaOffertaV2');
 *  ===============================
 */
 
+
+/**
+* Formats a number using the Italian locale.
+*
+* @param {number} value - The number to format.
+* @param {number} decimals - The number of decimal places.
+* @returns {string} The formatted number as a string.
+*/
+function formatNumberItalian(value, decimals) {
+return new Intl.NumberFormat('it-IT', {
+  minimumFractionDigits: decimals,
+  maximumFractionDigits: decimals,
+}).format(value);
+}
+
+
 /**
 * Crea o ottiene una sottocartella in una cartella specificata.
 *
@@ -160,6 +183,8 @@ Logger.log('Fine esecuzione funzione stampaOffertaV2');
 * @param {string} folderName - Nome della sottocartella da creare o ottenere.
 * @returns {string} ID della sottocartella.
 */
+
+
 function getOrCreateSubfolder(parentFolderId, folderName) {
   Logger.log('Verifica ID cartella: ' + parentFolderId);
   try {
@@ -187,6 +212,7 @@ function getOrCreateSubfolder(parentFolderId, folderName) {
       throw error;
   }
 }
+
 
 /**
 * Determina i template dei documenti da utilizzare in base al tipo di opportunità e al tipo di pagamento.
@@ -234,13 +260,14 @@ Logger.log('Template selezionati: ' + JSON.stringify(templates));
 return templates;
 }
 
+
 /**
 * Esegue operazioni aggiuntive per opportunità non di tipo "MAT".
 *
 * @param {string} appID - ID specifico dell'offerta in appSheet.
 * @param {string} cartella - ID della cartella principale.
 */
-function processAdditionalOperations(appID, cartella, consumi_annui, profilo_di_consumo, provincia, esposizione) {
+function processAdditionalOperations(appID, cartella, consumi_annui, profilo_di_consumo, provincia, esposizione, prezzo_energia) {
 Logger.log('Esecuzione delle operazioni aggiuntive per appID: ' + appID);
 
 const cartellaProgettoId = getOrCreateSubfolder(cartella, 'progetto');
@@ -250,10 +277,11 @@ const nuovoFileDatiTecnici = createOrUpdateTechnicalDataFile(cartellaProgettoId,
 
 updateTechnicalDataLog(nuovoFileDatiTecnici, appID);
 
-processEnergyAnalysis(nuovoFileDatiTecnici, consumi_annui, profilo_di_consumo, provincia, esposizione, appID);
+processEnergyAnalysis(nuovoFileDatiTecnici, consumi_annui, profilo_di_consumo, provincia, esposizione, prezzo_energia, appID);
 
 modifyReturnGraph(nuovoFileDatiTecnici);
 }
+
 
 /**
 * Crea o aggiorna il file dei dati tecnici nella cartella progetto.
@@ -267,13 +295,14 @@ Logger.log('Creazione o aggiornamento del file dati tecnici: ' + nomeFileDatiTec
 const fileDatiTecniciIterator = DriveApp.getFolderById(cartellaProgettoId).getFilesByName(nomeFileDatiTecnici);
 const fileId = fileDatiTecniciIterator.hasNext() 
   ? fileDatiTecniciIterator.next().getId()
-  : DriveApp.getFileById('1cPaLSSNlz5snyD4q3vBCLlpIGsKtiOaKrvsmoi_8SCk').makeCopy(nomeFileDatiTecnici, DriveApp.getFolderById(cartellaProgettoId)).getId();
+  : DriveApp.getFileById(DATI_TECNICI_TEMPLATE_ID).makeCopy(nomeFileDatiTecnici, DriveApp.getFolderById(cartellaProgettoId)).getId();
 Logger.log('ID file dati tecnici: ' + fileId);
 return SpreadsheetApp.openById(fileId);
 }
 
+
 /**
-* Aggiorna il log dei dati tecnici con l'ultima offerta generata.
+* Aggiorna il log dei dati tecnici con l'ultima offerta generata, mettendo l'appID seguito dal numero della riga.
 *
 * @param {Spreadsheet} nuovoFileDatiTecnici - Riferimento al file di dati tecnici appena creato.
 * @param {string} appID - ID di appSheet relativo all'offerta
@@ -281,22 +310,36 @@ return SpreadsheetApp.openById(fileId);
 function updateTechnicalDataLog(nuovoFileDatiTecnici, appID) {
 Logger.log('Aggiornamento log dati tecnici per appID: ' + appID);
 
-const CRMdatabase = SpreadsheetApp.openById('1_QEo5ynx_29j3I3uJJff5g7ZzGZJnPcIarIXfr5O2gQ');
-const sheetOfferte = CRMdatabase.getSheetByName('offerte');
-const data = sheetOfferte.getDataRange().getValues();
-const appIDColIndex = data[0].indexOf('appID');
 
-if (appIDColIndex === -1) throw new Error('Colonna "appID" non trovata');
+const data = sheetOfferte.getDataRange().getValues();  // Ottieni tutti i dati del foglio "offerte"
+const appIDColIndex = data[0].indexOf('appID');  // Trova l'indice della colonna appID
 
+if (appIDColIndex === -1) {
+  throw new Error('Colonna "appID" non trovata');
+}
+
+// Trova la riga con l'appID corrispondente
 const selectedRow = data.find(row => row[appIDColIndex] === appID);
-if (!selectedRow) throw new Error('Nessuna riga trovata con appID: ' + appID);
+if (!selectedRow) {
+  throw new Error('Nessuna riga trovata con appID: ' + appID);
+}
+
+Logger.log('Riga selezionata per appID: ' + JSON.stringify(selectedRow));
 
 const nuovoSheet = nuovoFileDatiTecnici.getActiveSheet();
-const ultimaRigaVuota = nuovoSheet.getLastRow() + 1;
+const ultimaRigaVuota = nuovoSheet.getLastRow() + 1;  // Calcola l'ultima riga vuota
+
+// Inserisci l'appID seguito dal numero della riga nella prima colonna
+selectedRow[0] = `${appID}-${ultimaRigaVuota}`;
+
+// Scrivi la riga selezionata nel nuovo foglio
 nuovoSheet.getRange(ultimaRigaVuota, 1, 1, selectedRow.length).setValues([selectedRow]);
 
-Logger.log('Log dati tecnici aggiornato con successo.');
+Logger.log('Log dati tecnici aggiornato con successo. appID: ' + appID + '-' + ultimaRigaVuota);
 }
+
+
+
 
 /**
 * Gestisce l'analisi energetica all'interno del file dei dati tecnici.
@@ -304,33 +347,52 @@ Logger.log('Log dati tecnici aggiornato con successo.');
 * @param {Spreadsheet} nuovoFileDatiTecnici - Riferimento al file di dati tecnici appena creato.
 * @param {string} appID - ID di appSheet relativo all'offerta
 */
-function processEnergyAnalysis(nuovoFileDatiTecnici, consumi_annui, profilo_di_consumo, provincia, esposizione, appID) {
+function processEnergyAnalysis(nuovoFileDatiTecnici, consumi_annui, profilo_di_consumo, provincia, esposizione, prezzo_energia, appID) {
   Logger.log('Esecuzione dell\'analisi energetica per appID: ' + appID);
-  
+
   const sheetAnalisiEnergetica = nuovoFileDatiTecnici.getSheetByName('analisi energetica');
-  sheetAnalisiEnergetica.getRange('consumi_annui').setValue(consumi_annui);
+
+  // Format numbers using Italian locale
+  const formattedConsumiAnnui = formatNumberItalian(consumi_annui, 2);
+  const formattedPrezzoEnergia = formatNumberItalian(prezzo_energia, 2);
+
+  // Set values in the spreadsheet
+  sheetAnalisiEnergetica.getRange('consumi_annui').setValue(formattedConsumiAnnui);
   sheetAnalisiEnergetica.getRange('profilo_di_consumo').setValue(profilo_di_consumo);
   sheetAnalisiEnergetica.getRange('provincia').setValue(provincia);
   sheetAnalisiEnergetica.getRange('esposizione').setValue(esposizione);
-  sheetAnalisiEnergetica.getRange('offerta_analizzata').setValue(appID);
+  sheetAnalisiEnergetica.getRange('prezzo_energia').setValue(formattedPrezzoEnergia);
 
-  var percentuale_autoconsumo = sheetAnalisiEnergetica.getRange('percentuale_autoconsumo').getValue();
-  var media_vendita = sheetAnalisiEnergetica.getRange('media_vendita').getValue();
-  var anni_ritorno_investimento = sheetAnalisiEnergetica.getRange('anni_ritorno_investimento').getValue();
-  var percentuale_risparmio_energetico = sheetAnalisiEnergetica.getRange('percentuale_risparmio_energetico').getValue();
-  var utile_25_anni = sheetAnalisiEnergetica.getRange('utile_25_anni').getValue();
+  // Retrieve calculated results
+  const percentuale_autoconsumo = sheetAnalisiEnergetica.getRange('percentuale_autoconsumo').getValue();
+  const media_vendita = sheetAnalisiEnergetica.getRange('media_vendita').getValue();
+  const anni_ritorno_investimento = sheetAnalisiEnergetica.getRange('anni_ritorno_investimento').getValue();
+  const percentuale_risparmio_energetico = sheetAnalisiEnergetica.getRange('percentuale_risparmio_energetico').getValue();
+  const utile_25_anni = sheetAnalisiEnergetica.getRange('utile_25_anni').getValue();
+  const detrazione = sheetAnalisiEnergetica.getRange('detrazione').getValue();
+  const massimale = sheetAnalisiEnergetica.getRange('massimale').getValue();
+  const rata_mensile = sheetAnalisiEnergetica.getRange('rata_mensile').getValue();
+  const produzione_primo_anno = sheetAnalisiEnergetica.getRange('produzione_primo_anno').getValue();
+
 
   Logger.log('Analisi energetica completata.');
 
-  // Restituisci i valori calcolati
+  // Return calculated values
   return {
       percentuale_autoconsumo,
       media_vendita,
       anni_ritorno_investimento,
       percentuale_risparmio_energetico,
-      utile_25_anni
+      utile_25_anni,
+      detrazione,
+      massimale,
+      rata_mensile,
+      produzione_primo_anno
   };
 }
+
+
+
 
 /**
 * Estrae i valori da un intervallo denominato in un foglio di calcolo.
@@ -374,6 +436,10 @@ Logger.log('Grafico di ritorno annuo aggiornato.');
 */
 function createPlaceholderMapping(params) {
 Logger.log('Creazione della mappatura dei segnaposto.');
+Logger.log('Valore originale di detrazione: ' + params.detrazione + ' (tipo: ' + typeof params.detrazione + ')');
+Logger.log('Valore originale di iva_offerta: ' + params.iva_offerta + ' (tipo: ' + typeof params.iva_offerta + ')');
+Logger.log('Valore originale di prezzo_offerta: ' + params.prezzo_offerta + ' (tipo: ' + typeof params.prezzo_offerta + ')');
+
 return {
   '{{tipo_opportunità}}': params.tipo_opportunita,
   '{{id}}': params.id,
@@ -394,7 +460,7 @@ return {
   '{{marca_batteria}}': params.marca_batteria,
   '{{tetto}}': params.tetto,
   '{{potenza_impianto}}': formatNumber(params.potenza_impianto, 2),
-  '{{produzione_impianto}}': formatNumber(params.produzione_impianto, 0),
+  '{{produzione_primo_anno}}': formatNumber(params.produzione_primo_anno, 0),
   '{{alberi}}': formatNumber(params.alberi, 0),
   '{{testo_aggiuntivo}}': params.testo_aggiuntivo,
   '{{tipo_pagamento}}': params.tipo_pagamento,
@@ -403,7 +469,7 @@ return {
   '{{condizione_pagamento_3}}': params.condizione_pagamento_3,
   '{{condizione_pagamento_4}}': params.condizione_pagamento_4,
   '{{imponibile_offerta}}': formatCurrency(params.imponibile_offerta),
-  '{{iva_offerta}}': formatCurrency(params.iva_offerta),
+  '{{iva_offerta}}': formatCurrency(params.iva_offerta, 0),
   '{{prezzo_offerta}}': formatCurrency(params.prezzo_offerta),
   '{{anni_finanziamento}}': formatNumber(params.anni_finanziamento, 0),
   '{{rata_mensile}}': formatCurrency(params.rata_mensile),
@@ -425,9 +491,11 @@ return {
   '{{percentuale_autoconsumo}}': formatPercentage(params.percentuale_autoconsumo),
   '{{media_vendita}}': formatCurrency(params.media_vendita),
   '{{prezzo_energia}}': formatCurrency(params.prezzo_energia),
-  '{{percentuale_risparmio_energetico}}': formatPercentage(params.percentuale_risparmio_energetico)
+  '{{percentuale_risparmio_energetico}}': formatPercentage(params.percentuale_risparmio_energetico),
+  '{{durata_incentivo}}': formatNumber(params.durata_incentivo, 0)
 };
 }
+
 
 /**
 * Formatta un numero con il numero specificato di decimali.
@@ -437,8 +505,46 @@ return {
 * @returns {string} Numero formattato.
 */
 function formatNumber(value, decimals) {
-return new Intl.NumberFormat('it-IT', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value);
+Logger.log('Valore ricevuto in formatNumber: ' + value + ' (tipo: ' + typeof value + ')');
+
+if (value == null || value === '') {
+  return '-';
 }
+
+// Rimuovi tutti i caratteri non numerici, tranne punto e virgola
+value = value.toString().replace(/[^\d.,-]/g, '');
+
+Logger.log('Valore dopo pulizia: ' + value);
+
+// Gestione dei separatori decimali
+if (value.includes(',') && value.includes('.')) {
+  value = value.replace(/\./g, '');
+  value = value.replace(',', '.');
+} else if (value.includes(',')) {
+  value = value.replace(',', '.');
+}
+
+Logger.log('Valore prima della conversione numerica: ' + value);
+
+value = parseFloat(value);
+
+Logger.log('Valore numerico: ' + value);
+
+if (isNaN(value)) {
+  return '-';
+}
+
+// Formattazione personalizzata
+let formattedValue = value.toFixed(decimals);
+let parts = formattedValue.split('.');
+parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+formattedValue = parts.join(',');
+
+Logger.log('Valore formattato personalizzato: ' + formattedValue);
+
+return formattedValue;
+}
+
 
 /**
 * Formatta un valore come valuta.
@@ -447,8 +553,48 @@ return new Intl.NumberFormat('it-IT', { minimumFractionDigits: decimals, maximum
 * @returns {string} Valore formattato come valuta.
 */
 function formatCurrency(value) {
-return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+Logger.log('Valore ricevuto in formatCurrency: ' + value + ' (tipo: ' + typeof value + ')');
+
+if (value == null || value === '') {
+  return '-';
 }
+
+// Rimuovi tutti i caratteri non numerici, tranne punto e virgola
+value = value.toString().replace(/[^\d.,-]/g, '');
+
+Logger.log('Valore dopo pulizia: ' + value);
+
+// Gestione dei separatori decimali
+if (value.includes(',') && value.includes('.')) {
+  // Caso in cui ci sono sia punto che virgola (es. "1.231,82")
+  value = value.replace(/\./g, '');
+  value = value.replace(',', '.');
+} else if (value.includes(',')) {
+  // Caso in cui c'è solo la virgola (es. "1231,82")
+  value = value.replace(',', '.');
+}
+
+Logger.log('Valore prima della conversione numerica: ' + value);
+
+value = parseFloat(value);
+
+Logger.log('Valore numerico: ' + value);
+
+if (isNaN(value)) {
+  return '-';
+}
+
+// Formattazione personalizzata
+let parts = value.toFixed(2).split('.');
+parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+let formattedValue = parts.join(',');
+formattedValue += ' €';
+
+Logger.log('Valore formattato personalizzato: ' + formattedValue);
+
+return formattedValue;
+}
+
 
 /**
 * Formatta un valore come percentuale.
@@ -459,6 +605,7 @@ return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', mini
 function formatPercentage(value) {
 return new Intl.NumberFormat('it-IT', { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 }
+
 
 /**
 * Crea un documento da un template e lo salva in una cartella specificata.
@@ -474,6 +621,7 @@ const documentCopy = DriveApp.getFileById(templateId).makeCopy(fileName, DriveAp
 Logger.log('Documento creato: ' + fileName);
 return DocumentApp.openById(documentCopy.getId());
 }
+
 
 /**
 * Funzione per sostituire i segnaposto con i valori nel documento.
@@ -491,6 +639,7 @@ function replacePlaceholders(body, placeholders) {
       body.replaceText(placeholder, value.toString());
   });
 }
+
 
 /**
 * Aggiunge un hyperlink a un testo specificato all'interno di un documento.
