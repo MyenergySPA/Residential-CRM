@@ -7,17 +7,10 @@
 var CHART_DEFINITIONS = [
   {
     // e.g. from 'analisi energetica' sheet
-    sheetName: 'calcoli',
+    sheetName: 'ritorno 25 anni grafico',
     chartIndex: 0,
     placeholder: '{{CHART_RITORNO_25_ANNI}}',
     customFileName: 'chart_ritorno_25_anni'
-  },
-  {
-    // e.g. from 'analisi energetica' sheet
-    sheetName: 'analisi energetica',
-    chartIndex: 0,
-    placeholder: '{{test}}',
-    customFileName: 'chart_test'
   },
   // Add as many chart definitions as needed
 ];

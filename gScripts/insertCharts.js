@@ -36,7 +36,7 @@ function insertCharts(doc, chartMappings) {
   chartMappings.forEach(mapping => {
     const placeholder = mapping.placeholder;
     const chartBlob = mapping.blob;
-    const maxWidth = mapping.maxWidthPx || 1000; // default max width if not specified
+    const maxWidth = mapping.maxWidthPx || 360; // default max width if not specified
 
     if (!placeholder || !chartBlob) {
       Logger.log('Skipping invalid mapping: ' + JSON.stringify(mapping));
