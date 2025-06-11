@@ -40,6 +40,7 @@ function createPlaceholderMapping(params) {
     '{{condizione_pagamento_4}}': params.condizione_pagamento_4,
     '{{imponibile_offerta}}': formatCurrency(params.imponibile_offerta),
     '{{iva_offerta}}': formatCurrency(params.iva_offerta, 0),
+    '{{iva_percentuale}}': params.iva_percentuale *= 100,
     '{{prezzo_offerta}}': formatCurrency(params.prezzo_offerta),
     '{{anni_finanziamento}}': formatNumber(params.anni_finanziamento, 0),
     '{{rata_mensile}}': formatCurrency(params.rata_mensile),
@@ -63,13 +64,21 @@ function createPlaceholderMapping(params) {
     '{{prezzo_energia}}': formatCurrency(params.prezzo_energia),
     '{{percentuale_risparmio_energetico}}': formatPercentage(params.percentuale_risparmio_energetico),
     '{{durata_incentivo}}': formatNumber(params.durata_incentivo, 0),
+    '{{acconto_diretto}}' : formatCurrency(params.acconto_diretto),
+    '{{condominio}}' : params.condominio,
+    '{{garanzia_moduli}}' : params.garanzia_moduli,
+    '{{garanzia_inverter}}' : params.garanzia_inverter,
+    '{{garanzia_batterie}}' : params.garanzia_batterie,
+    '{{tipo_incentivo}}' : params.tipo_incentivo,
+    '{{massimale}}': formatCurrency(params.massimale),
+
   };
 }
 
 
 /*
  * Funzione per sostituire i segnaposto con i valori nel documento.
- * Sostituisce i valori vuoti con un trattino (-).
+ * Sostituisce i valori vuoti con un carattere indicato.
  *
  * @param {Body} docBody - Il corpo del documento Google Docs.
  * @param {Object} placeholders - Oggetto mappa che contiene i segnaposto e i loro valori.
