@@ -4,7 +4,7 @@ This repository contains Google Apps Script modules used to automate the offer g
 
 ## Repository structure
 
-  -  gScripts/ – collection of `.js` files containing Apps Script functions.
+- **gScripts/** – collection of `.js` files containing Apps Script functions.
   - `main.js` – main entry point that orchestrates creation of technical data spreadsheets, generation of offer documents and insertion of charts.
   - `docTemplates.js` – defines document template IDs and logic to choose which template to use for each opportunity.
   - `docPlaceholders.js` – builds the placeholder map and replaces placeholders in generated documents.
@@ -16,7 +16,7 @@ This repository contains Google Apps Script modules used to automate the offer g
   - `newSubfolders.js` – utility for creating or retrieving subfolders by name.
   - `duplicateCheck.js` – scans the CRM spreadsheet for duplicate opportunities and sends a warning email if needed.
   - `newEmailOffer.js` – small webapp and helper function for composing personalised offer emails.
-  -  mail templates/ – HTML files used as email bodies (`offerta.html`, `recensione.html`, etc.).
+- **mail templates/** – HTML files used as email bodies (`offerta.html`, `recensione.html`, etc.).
 
 ## Usage
 
