@@ -71,6 +71,7 @@ function createPlaceholderMapping(params) {
     '{{garanzia_batterie}}' : params.garanzia_batterie,
     '{{tipo_incentivo}}' : params.tipo_incentivo,
     '{{massimale}}': formatCurrency(params.massimale),
+    '{{prezzo_offerta_finanz}}': formatCurrency(params.rata_mensile * params.numero_rate_mensili),
 
   };
 }
