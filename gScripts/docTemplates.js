@@ -11,8 +11,9 @@
   presentazioneCOND: '1iIom4lvX5ymUtQYucba2QyPiwOY94ySErcX19BowMrg',
   presentazioneFinanzCOND: '1pUcvT8cJtJgXs_ax-vExw5nfKraRqSsBl6gfn63dX7k',
   presentazione_PNRR: '1l-2iiXSI5mtPuEE6f5dWSUSKkHacHxNQKxtrDXQ0NMQ' ,
-  offerta_PNRR: '1dEfWpHHEAyUjz8eJEHhdGP0hqrpnHpZV05KYad0EMq8'
-
+  offerta_PNRR: '1dEfWpHHEAyUjz8eJEHhdGP0hqrpnHpZV05KYad0EMq8',
+  presentazione_finanz_PNRR: '1LWzIEdTpzKVlq80FvO8JJ9XBSoEkVLcanC4mvC5_se8',
+  offerta_finanz_PNRR: '17S0KGjkbExL_vCBKevTUwpfAcBl_J7hkJkgdDroQdeA',
   }
 
 /**
@@ -70,19 +71,27 @@ const DOCUMENT_CONFIG = {
     }
   ],
 
-  // Configurazione per RES e varianti simili
+  // configuration for RES subtypes
   // se la condizione non viene soddisfatta, viene scelto il modello RES standard
    DEFAULT: [
     {
       templateId: ({ tipo_incentivo, tipo_pagamento }) => {
-        // 1) se è PNRR → PNRR
+        
+        // "ifs for 'presentazione'"
+        
+        if (tipo_incentivo === "PNRR" && tipo_pagamento === "Finanziamento") {
+          return TEMPLATES.presentazione_finanz_PNRR;
+        }
+
         if (tipo_incentivo === "PNRR") {
           return TEMPLATES.presentazione_PNRR;
         }
+
         // 2) se è finanziamento → finanziamento
         if (tipo_pagamento === "Finanziamento") {
           return TEMPLATES.presentazioneFinanz;
         }
+
         // 3) altrimenti → standard
         return TEMPLATES.presentazione;
       },
@@ -90,13 +99,22 @@ const DOCUMENT_CONFIG = {
     },
     {
       templateId: ({ tipo_incentivo, tipo_pagamento }) => {
+
+        // "ifs for 'offerta'"
+
+        if (tipo_incentivo === "PNRR" && tipo_pagamento === "Finanziamento") {
+          return TEMPLATES.offerta_finanz_PNRR;
+        }
+
         if (tipo_incentivo === "PNRR") {
           return TEMPLATES.offerta_PNRR;
         }
+
         if (tipo_pagamento === "Finanziamento") {
           return TEMPLATES.offertaFinanz;
         }
-        return TEMPLATES.offerta;
+
+      return TEMPLATES.offerta;
       },
       nomeFile: ({ tipo_opportunita, id, yy, nome, cognome, dataOggi }) =>
         `Offerta ${tipo_opportunita}-${id}-${yy} ${nome} ${cognome} ${dataOggi}`
