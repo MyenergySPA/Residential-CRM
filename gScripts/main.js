@@ -29,7 +29,7 @@ function main(appID, tipo_opportunita, id, yy, nome, cognome, indirizzo, telefon
                         iva_offerta, iva_percentuale, prezzo_offerta, cartella, anni_finanziamento, esposizione, area_m2_impianto, 
                         numero_colonnina_74kw, numero_colonnina_22kw, numero_ottimizzatori, marca_ottimizzatori, numero_linea_vita, 
                         scheda_tecnica_moduli, scheda_tecnica_inverter, scheda_tecnica_batterie, scheda_tecnica_ottimizzatori, consumi_annui, 
-                        profilo_di_consumo, provincia, prezzo_energia, numero_rate_mensili, anni_finanziamento, tipo_incentivo,durata_incentivo, coordinate, condominio, garanzia_moduli, garanzia_inverter, garanzia_batterie) {
+                        profilo_di_consumo, provincia, prezzo_energia, numero_rate_mensili, anni_finanziamento, tipo_incentivo,durata_incentivo, coordinate, condominio, garanzia_moduli, garanzia_inverter, garanzia_batterie, acconto_diretto) {
 
   Logger.log('Avvio funzione stampaOffertaV2 per appID: ' + appID);
 
@@ -93,7 +93,7 @@ function main(appID, tipo_opportunita, id, yy, nome, cognome, indirizzo, telefon
     const corpo = doc.getBody();
     
   let mappaturaSegnapostov2 = createPlaceholderMapping({
-      tipo_opportunita, id, yy, nome, cognome, indirizzo, telefono, email, dataOggi, numero_moduli, marca_moduli, numero_inverter, marca_inverter, numero_batteria, capacita_batteria, totale_capacita_batterie, marca_batteria, tetto, potenza_impianto, alberi, testo_aggiuntivo, tipo_pagamento, condizione_pagamento_1, condizione_pagamento_2, condizione_pagamento_3, condizione_pagamento_4, imponibile_offerta, iva_offerta, iva_percentuale, prezzo_offerta, anni_finanziamento, esposizione, area_m2_impianto, scheda_tecnica_moduli, scheda_tecnica_inverter, scheda_tecnica_batterie, scheda_tecnica_ottimizzatori, numero_colonnina_74kw, numero_colonnina_22kw, numero_ottimizzatori, marca_ottimizzatori, numero_linea_vita, prezzo_energia, numero_rate_mensili,  anni_finanziamento, tipo_incentivo, durata_incentivo, indirizzo, condominio, garanzia_moduli, garanzia_inverter, garanzia_batterie,
+      tipo_opportunita, id, yy, nome, cognome, indirizzo, telefono, email, dataOggi, numero_moduli, marca_moduli, numero_inverter, marca_inverter, numero_batteria, capacita_batteria, totale_capacita_batterie, marca_batteria, tetto, potenza_impianto, alberi, testo_aggiuntivo, tipo_pagamento, condizione_pagamento_1, condizione_pagamento_2, condizione_pagamento_3, condizione_pagamento_4, imponibile_offerta, iva_offerta, iva_percentuale, prezzo_offerta, anni_finanziamento, esposizione, area_m2_impianto, scheda_tecnica_moduli, scheda_tecnica_inverter, scheda_tecnica_batterie, scheda_tecnica_ottimizzatori, numero_colonnina_74kw, numero_colonnina_22kw, numero_ottimizzatori, marca_ottimizzatori, numero_linea_vita, prezzo_energia, numero_rate_mensili,  anni_finanziamento, tipo_incentivo, durata_incentivo, indirizzo, condominio, garanzia_moduli, garanzia_inverter, garanzia_batterie, acconto_diretto,
         
         percentuale_risparmio_energetico: datiTecniciData.percentuale_risparmio_energetico,
         anni_ritorno_investimento: datiTecniciData.anni_ritorno_investimento,
