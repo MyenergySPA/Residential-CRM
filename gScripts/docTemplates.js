@@ -1,15 +1,15 @@
 // Definizione dei templates doc di offerta
  TEMPLATES = {
-  presentazioneFinanz: '1zMIjekT-K_JWssZidSBjSuog_LfcHZjMLcEbePnP_t8',
-  offertaMAT: '1gMJGZZA7LwdugXKEFTK5LbJU2iiIIs6Ee5zBnlW81es',
+  presentazione_Finanz: '1zMIjekT-K_JWssZidSBjSuog_LfcHZjMLcEbePnP_t8',
+  offerta_MAT: '1gMJGZZA7LwdugXKEFTK5LbJU2iiIIs6Ee5zBnlW81es',
   presentazione: '1XYDLbJymoNqU8B1nYqJm0k52-SU5O19G1Xzph_rjShg',
   offerta: '1_PNr5Y6svOADvgKZIjFjKsoDFpNV6TkOxivLIVqcZdA',
-  offertaREDEN: '1Pl16i3gROkfvxXYSIi8C1q9paqZ6xo7LF5W1isZcXFA',
-  presentazioneREDEN: '1tGpVVMZL1Yuw5JIlytc-KiqxeQxd7Wegj74fLj_snMg',
-  offertaGSE: '1t5S9CYogDPAtKhy2ejMVELKjAkkieqfu31eIFF06GYg',
-  offertaFinanz: '1RCr8lgM98ryQwMiGFqecMHiWgIHsPN0tfV5HN82eYr4',
-  presentazioneCOND: '1iIom4lvX5ymUtQYucba2QyPiwOY94ySErcX19BowMrg',
-  presentazioneFinanzCOND: '1pUcvT8cJtJgXs_ax-vExw5nfKraRqSsBl6gfn63dX7k',
+  offerta_REDEN: '1Pl16i3gROkfvxXYSIi8C1q9paqZ6xo7LF5W1isZcXFA',
+  presentazione_REDEN: '1tGpVVMZL1Yuw5JIlytc-KiqxeQxd7Wegj74fLj_snMg',
+  offerta_GSE: '1t5S9CYogDPAtKhy2ejMVELKjAkkieqfu31eIFF06GYg',
+  offerta_Finanz: '1RCr8lgM98ryQwMiGFqecMHiWgIHsPN0tfV5HN82eYr4',
+  presentazione_COND: '1iIom4lvX5ymUtQYucba2QyPiwOY94ySErcX19BowMrg',
+  presentazione_Finanz_COND: '1pUcvT8cJtJgXs_ax-vExw5nfKraRqSsBl6gfn63dX7k',
   presentazione_PNRR: '1l-2iiXSI5mtPuEE6f5dWSUSKkHacHxNQKxtrDXQ0NMQ' ,
   offerta_PNRR: '1dEfWpHHEAyUjz8eJEHhdGP0hqrpnHpZV05KYad0EMq8',
   presentazione_finanz_PNRR: '1LWzIEdTpzKVlq80FvO8JJ9XBSoEkVLcanC4mvC5_se8',
@@ -28,16 +28,16 @@ const DOCUMENT_CONFIG = {
   MAT: [
     {
       // Per "MAT" si crea solo l'offerta (senza presentazione)
-      templateId: TEMPLATES.offertaMAT,
-      nomeFile: ({ nome, cognome, dataOggi }) => `Offerta Myenergy ${nome} ${cognome} ${dataOggi}`
+      templateId: TEMPLATES.offerta_MAT,
+      nomeFile: ({ nome_referente, cognome_referente, dataOggi }) => `Offerta Myenergy ${nome_referente} ${cognome_referente} ${dataOggi}`
     }
   ],
 
   ADD: [
     {
       // Per "ADD", uguale a "MAT"
-      templateId: TEMPLATES.offertaMAT,
-      nomeFile: ({ nome, cognome, dataOggi }) => `Offerta Myenergy ${nome} ${cognome} ${dataOggi}`
+      templateId: TEMPLATES.offerta_MAT,
+      nomeFile: ({ nome_referente, cognome_referente, dataOggi }) => `Offerta Myenergy ${nome_referente} ${cognome_referente} ${dataOggi}`
     }
   ], 
 
@@ -45,29 +45,15 @@ const DOCUMENT_CONFIG = {
     {
       // Per "COND": documento di presentazione
       templateId: ({ tipo_pagamento }) =>
-        tipo_pagamento === "Finanziamento" ? TEMPLATES.presentazioneFinanzCOND : TEMPLATES.presentazioneCOND,
-      nomeFile: ({ nome, cognome }) => `Presentazione offerta Myenergy ${nome} ${cognome}`
+        tipo_pagamento === "Finanziamento" ? TEMPLATES.presentazione_Finanz_COND : TEMPLATES.presentazione_COND,
+      nomeFile: ({ nome_referente, cognome_referente }) => `Presentazione offerta Myenergy ${nome_referente} ${cognome_referente}`
     },
     {
       // Per "COND": documento offerta
       templateId: ({ tipo_pagamento }) =>
-        tipo_pagamento === "Finanziamento" ? TEMPLATES.offertaFinanz : TEMPLATES.offerta,
-      nomeFile: ({ tipo_opportunita, id, yy, nome, cognome, dataOggi }) =>
-        `Offerta ${tipo_opportunita}-${id}-${yy} ${nome} ${cognome} ${dataOggi}`
-    }
-  ],
-
-  REDEN: [
-    {
-      // Documento di presentazione
-      templateId: TEMPLATES.presentazioneREDEN,
-      nomeFile: ({ nome, cognome }) => `Presentazione offerta Myenergy ${nome} ${cognome}`
-    },
-    {
-      // Documento offerta
-      templateId: TEMPLATES.offertaREDEN,
-      nomeFile: ({ tipo_opportunita, id, yy, nome, cognome, dataOggi }) =>
-        `Offerta ${tipo_opportunita}-${id}-${yy} ${nome} ${cognome} ${dataOggi}`
+        tipo_pagamento === "Finanziamento" ? TEMPLATES.offerta_Finanz : TEMPLATES.offerta,
+      nomeFile: ({ tipo_opportunita, id, yy, nome_referente, cognome_referente, dataOggi }) =>
+        `Offerta ${tipo_opportunita}-${id}-${yy} ${nome_referente} ${cognome_referente} ${dataOggi}`
     }
   ],
 
@@ -87,15 +73,19 @@ const DOCUMENT_CONFIG = {
           return TEMPLATES.presentazione_PNRR;
         }
 
+        if (tipo_incentivo === "REDEN") {
+          return TEMPLATES.presentazione_REDEN;
+        }
+
         // 2) se è finanziamento → finanziamento
         if (tipo_pagamento === "Finanziamento") {
-          return TEMPLATES.presentazioneFinanz;
+          return TEMPLATES.presentazione_Finanz;
         }
 
         // 3) altrimenti → standard
         return TEMPLATES.presentazione;
       },
-      nomeFile: ({ nome, cognome }) => `Presentazione offerta Myenergy ${nome} ${cognome}`
+      nomeFile: ({ nome_referente, cognome_referente }) => `Presentazione offerta Myenergy ${nome_referente} ${cognome_referente}`
     },
     {
       templateId: ({ tipo_incentivo, tipo_pagamento }) => {
@@ -110,14 +100,18 @@ const DOCUMENT_CONFIG = {
           return TEMPLATES.offerta_PNRR;
         }
 
+        if (tipo_incentivo === "REDEN") {
+          return TEMPLATES.offerta_REDEN;
+        }
+
         if (tipo_pagamento === "Finanziamento") {
-          return TEMPLATES.offertaFinanz;
+          return TEMPLATES.offerta_Finanz;
         }
 
       return TEMPLATES.offerta;
       },
-      nomeFile: ({ tipo_opportunita, id, yy, nome, cognome, dataOggi }) =>
-        `Offerta ${tipo_opportunita}-${id}-${yy} ${nome} ${cognome} ${dataOggi}`
+      nomeFile: ({ tipo_opportunita, id, yy, nome_referente, cognome_referente, dataOggi }) =>
+        `Offerta ${tipo_opportunita}-${id}-${yy} ${nome_referente} ${cognome_referente} ${dataOggi}`
     }
   ]
 };
@@ -135,11 +129,11 @@ const DOCUMENT_CONFIG = {
  * @param {string} yy - Anno.
  * @returns {Array} Array di oggetti contenenti templateId e nomeFile per ogni documento da creare.
  */
-function determineDocumentTemplates(tipo_opportunita, tipo_pagamento, tipo_incentivo, nome, cognome, dataOggi, id, yy) {
+function determineDocumentTemplates(tipo_opportunita, tipo_pagamento, tipo_incentivo, nome_referente, cognome_referente, dataOggi, id, yy) {
   Logger.log(`Determinazione dei template per tipo_opportunita: ${tipo_opportunita}, tipo_pagamento: ${tipo_pagamento}, tipo_incentivo: ${tipo_incentivo}`);
   
   // Raggruppiamo tutti i parametri in un unico oggetto
-  const params = { tipo_opportunita, tipo_pagamento, tipo_incentivo, nome, cognome, dataOggi, id, yy };
+  const params = { tipo_opportunita, tipo_pagamento, tipo_incentivo, nome_referente, cognome_referente, dataOggi, id, yy };
 
   // Se esiste una configurazione specifica per il tipo_opportunita, la usiamo, altrimenti usiamo quella DEFAULT
   const config = DOCUMENT_CONFIG[tipo_opportunita] || DOCUMENT_CONFIG.DEFAULT;

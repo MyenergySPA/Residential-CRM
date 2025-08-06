@@ -14,8 +14,8 @@ function createPlaceholderMapping(params) {
     '{{tipo_opportunità}}': params.tipo_opportunita,
     '{{id}}': params.id,
     '{{yy}}': params.yy,
-    '{{nome}}': params.nome,
-    '{{cognome}}': params.cognome,
+    '{{nome}}': params.nome_referente,
+    '{{cognome}}': params.cognome_referente,
     '{{indirizzo}}': params.indirizzo,
     '{{telefono}}': params.telefono,
     '{{email}}': params.email,
@@ -72,7 +72,8 @@ function createPlaceholderMapping(params) {
     '{{tipo_incentivo}}' : params.tipo_incentivo,
     '{{massimale}}': formatCurrency(params.massimale),
     '{{prezzo_offerta_finanz}}': formatCurrency(params.rata_mensile * params.numero_rate_mensili + params.acconto_diretto),
-
+    '{{tilt}}': formatNumber(params.tilt, 0),
+    '{{azimuth}}': formatNumber(params.azimuth, 0),
   };
 }
 
