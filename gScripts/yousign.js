@@ -5,7 +5,7 @@
 // -----------------------------------------------------------------------------
 
 // Credenziali e endpoint
-const YOUSIGN_API_KEY = 'cYEnc4l5hDoIylY6vvsNCco0Gasg9WlW';
+const YOUSIGN_API_KEY = 'API_KEY_HERE';  // Inserisci la tua API Key qui
 const YOUSIGN_API_BASE = 'https://api.yousign.app/v3';
 
 /**
