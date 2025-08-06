@@ -29,6 +29,14 @@ These scripts are intended for use inside the Google Apps Script environment. To
 
 The scripts assume the presence of a spreadsheet acting as the CRM database with sheets named `offerte` and `cronologia`.
 
+## Developer Guidelines
+
+- **Test Pull Request for Significant Changes:**  
+  For major modifications, please create a test pull request. This allows for thorough review and testing before the changes are merged into the main branch.
+
+- **Hiding API Keys:**  
+  Ensure that all API keys and sensitive credentials are removed or hidden (for example, using environment variables or configuration files) before pushing your changes.
+
 ## License
 
 This repository does not currently include an explicit license.
