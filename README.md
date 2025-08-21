@@ -15,7 +15,9 @@ This repository contains Google Apps Script modules used to automate the offer g
   - `newClientFolders.js` – creates client folders and stores their URLs in a Google Sheet.
   - `newSubfolders.js` – utility for creating or retrieving subfolders by name.
   - `duplicateCheck.js` – scans the CRM spreadsheet for duplicate opportunities and sends a warning email if needed.
-  - `newEmailOffer.js` – small webapp and helper function for composing personalised offer emails.
+  - `WebRouter.js` – single Web App router (doGet) that routes requests to handlers based on mode (e.g., export, email).
+  - `exportBudget.js` – budget export handler and utilities; reads named ranges (offerta_analizzata, budget) from the technical sheet, generates a CSV (UTF-8 with BOM), saves it to Drive, and triggers a direct browser download.
+  - `newEmailOffer.js` – email handler and helpers for composing personalized offer drafts in Gmail; invoked by WebRouter (mode=email), no standalone doGet.
 - **mail templates/** – HTML files used as email bodies (`offerta.html`, `recensione.html`, etc.).
 
 ## Usage
