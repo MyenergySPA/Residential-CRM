@@ -1,5 +1,5 @@
 //nome del file dati tecnici creato per il cliente
-const nomeFileDatiTecnici = 'dati tecnici 6.5'; // MAIN
+const nomeFileDatiTecnici = 'dati tecnici 6.6'; // MAIN
 // const nomeFileDatiTecnici = 'dati tecnici 6.0 test'; // TEST
 
 // ID del template di base del foglio "dati tecnici"
