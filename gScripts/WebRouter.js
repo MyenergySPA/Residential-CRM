@@ -1,4 +1,5 @@
-/** Router unico della Web App */
+/** vesrione 2.0
+ * Router unico della Web App */
 function doGet(e) {
   try {
     const p = e.parameter || {};
