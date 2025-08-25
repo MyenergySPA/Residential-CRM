@@ -1,4 +1,5 @@
 /**
+ * versione 2.0
  * Aggiorna il log dei dati tecnici con l'ultima offerta generata, mettendo l'appID seguito dal numero della riga.
  * Questa funzione si aspetta che la variabile 'sheetOfferte' sia definita globalmente.
  *
@@ -196,7 +197,7 @@ function processDatiTecnici(nuovoFileDatiTecnici, consumi_annui, profilo_di_cons
     anni_ritorno_investimento: sheetAnalisiEnergetica.getRange('anni_ritorno_investimento').getValue(),
     percentuale_risparmio_energetico: sheetAnalisiEnergetica.getRange('percentuale_risparmio_energetico').getValue(),
     utile_25_anni: sheetAnalisiEnergetica.getRange('utile_25_anni').getValue(),
-    detrazione: sheetAnalisiEnergetica.getRange('detrazione').getValue(),
+    incentivo_effettivo: sheetAnalisiEnergetica.getRange('incentivo_effettivo').getValue(),
     massimale: sheetAnalisiEnergetica.getRange('massimale').getValue(),
     rata_mensile: sheetAnalisiEnergetica.getRange('rata_mensile').getValue(),
     produzione_primo_anno: sheetAnalisiEnergetica.getRange('produzione_primo_anno').getValue()
