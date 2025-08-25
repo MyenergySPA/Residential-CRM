@@ -1,3 +1,4 @@
+// versione 2.0
 // Definizione dei templates doc di offerta
  TEMPLATES = {
   presentazione_Finanz: '1zMIjekT-K_JWssZidSBjSuog_LfcHZjMLcEbePnP_t8',
@@ -169,4 +170,3 @@ function createDocumentFromTemplate(templateId, destinationFolderId, fileName) {
   Logger.log('Documento creato: ' + fileName);
   return DocumentApp.openById(documentCopy.getId());
 }
-
