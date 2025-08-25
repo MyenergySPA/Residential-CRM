@@ -1,4 +1,39 @@
 /**
+ * versione 2.0
+ * Inserisce un'immagine (PNG/JPG) presa da Drive (fileId) al posto del placeholder testuale.
+ * Esempio placeholder: {{CHART_RITORNO_25_ANNI}}
+ * @param {GoogleAppsScript.Document.Document} doc
+ * @param {string} placeholder - es. '{{CHART_RITORNO_25_ANNI}}'
+ * @param {string} fileId
+ * @param {number} maxWidthPt - larghezza massima in punti (facoltativa, es. 430)
+ * @return {boolean} true se sostituito, altrimenti false
+ */
+function insertImageByFileId(doc, placeholder, fileId, maxWidthPt) {
+  var body = doc.getBody();
+  var rng = body.findText(placeholder);
+  if (!rng) return false;
+
+  var el = rng.getElement();
+  var par = el.getParent().asParagraph();
+  var idx = par.getChildIndex(el);
+
+  // rimuovi il testo placeholder
+  el.removeFromParent();
+
+  // inserisci immagine
+  var blob = DriveApp.getFileById(fileId).getBlob();
+  var inline = par.insertInlineImage(idx, blob);
+
+  if (maxWidthPt && inline.getWidth() > maxWidthPt) {
+    var ratio = maxWidthPt / inline.getWidth();
+    inline.setWidth(maxWidthPt);
+    inline.setHeight(Math.round(inline.getHeight() * ratio));
+  }
+  return true;
+}
+
+
+/**
  * Replaces one or more placeholders in the doc with inline charts/images,
  * preserving their exact location (even if in a table, header, etc.).
  *
