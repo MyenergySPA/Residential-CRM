@@ -1,250 +1,373 @@
-/*** vesrsione 1.0
- * PRECOMPUTE OFFERTA  (Fase 2) ***/
-// Dipendenze riusate da main.js: CRMdatabase, sheetOfferte, sheetCronologia,
-// nomeFileDatiTecnici, DATI_TECNICI_TEMPLATE_ID, newSubfolder, processDatiTecnici, newCharts, CHART_DEFINITIONS
+/*** v3 — precompute con 2 percorsi: FAST (clone) / STANDARD (calcolo)
+ * Dipendenze esterne presenti nel progetto:
+ *  - nomeFileDatiTecnici, DATI_TECNICI_TEMPLATE_ID
+ *  - newSubfolder, newLogDatiTecnici, processDatiTecnici, newCharts, CHART_DEFINITIONS
+ *  - CRMdatabase (Spreadsheet globale)
+ ***/
 
-function precomputeOffer(offerAppID) {
+/* -------------------- Util minimi -------------------- */
+function _extractFolderId_(urlOrId) {
+  const m = String(urlOrId || '').match(/[-\w]{25,}/);
+  if (!m) throw new Error('URL/ID cartella non valido');
+  return m[0];
+}
+function _norm_(v) {
+  if (v === null || v === undefined) return '';
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === 'number') return String(Math.round(v * 1000) / 1000);
+  return String(v).trim();
+}
+function _toNumber_(v) {
+  if (typeof v === 'number') return v;
+  const s = String(v || '').replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
+  const n = Number(s);
+  if (!isFinite(n)) throw new Error('Valore numerico non valido: ' + v);
+  return n;
+}
+function _toEuroPerKWh_(v) {
+  // Accetta "0,35", "0.35", "35" (cent/kWh) e normalizza a €/kWh
+  const n = _toNumber_(v);
+  // Se sembra in centesimi (tra 3 e 200), convertilo in euro
+  const fixed = (n > 3 && n < 200) ? (n / 100) : n;
+  return Math.round(fixed * 10000) / 10000; // 4 decimali
+}
+function _openByName_(ss, tabName) {
+  const sh = ss.getSheetByName(tabName);
+  if (!sh) throw new Error('Foglio mancante: ' + tabName);
+  const head = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(x => String(x).trim());
+  const idx  = Object.fromEntries(head.map((h,i)=>[h,i]));
+  const col  = name => { if (!(name in idx)) throw new Error('Colonna mancante in ' + tabName + ': ' + name); return idx[name]+1; };
+  return { sh, head, col };
+}
+function _idx_(sh) {
+  const head = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
+  const map = {}; head.forEach((h,i)=> map[h]=i);
+  return { head, map, col: n => (n in map ? map[n]+1 : 0) };
+}
+function _uuid_() { return Utilities.getUuid(); }
+
+/* Fingerprint tecnico dell’offerta (stessa logica della tua versione) */
+function _buildFingerprint_({
+  tilt, azimuth, tipoModuli, numeroModuli, potenzaKWp,
+  modelloBatteria, numeroBatterie, accumulo, prezzoOffertaTuttoIncluso,
+  anniDurataIncentivo, rid, tipoPagamento, anniFinanziamento, accontoDiretto, coordinate,
+  prezzoEnergia
+}) {
+  const pairs = [
+    ['tilt', tilt],
+    ['azimuth', azimuth],
+    ['tipo moduli', tipoModuli],
+    ['numero moduli', numeroModuli],
+    ['Potenza [kWp]', potenzaKWp],
+    ['modello batteria', modelloBatteria],
+    ['numero batterie', numeroBatterie],
+    ['Accumulo', accumulo],
+    ['prezzo energia', prezzoEnergia], // <<--- NEW (€/kWh)
+    ['prezzo offerta appros. - tutto incluso', prezzoOffertaTuttoIncluso],
+    ['anni durata incentivo', anniDurataIncentivo],
+    ['RID', rid],
+    ['tipo_pagamento', tipoPagamento],
+    ['anni finanziamento', anniFinanziamento],
+    ['Acconto diretto', accontoDiretto],
+    ['coordinate', coordinate],
+  ];
+  return pairs.map(([k, v]) => k + ':' + _norm_(v)).join('|');
+}
+
+
+/* -------------------- offerte_output helpers -------------------- */
+
+/** Trova la riga per un dato appID (refIDofferta) */
+function _getOfferteOutputRowByOffer_(offerId) {
+  const { sh, col } = _openByName_(CRMdatabase, 'offerte_output');
+  const last = sh.getLastRow(); if (last <= 1) return null;
+  const vals = sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
+  const iRef = col('refIDofferta')-1;
+  const idx  = vals.findIndex(r => String(r[iRef]).trim() === String(offerId).trim());
+  if (idx < 0) return null;
+  const row = vals[idx];
+  return {
+    rowNum: idx+2,
+    appIDoutput:      String(row[col('appIDoutput')-1] || ''),
+    calc_ready:       row[col('calc_ready')-1] === true || String(row[col('calc_ready')-1]).toLowerCase()==='true',
+    calc_fingerprint: String(row[col('calc_fingerprint')-1] || ''),
+    chart_file_url:   String(row[col('chart_file_url')-1] || '')
+  };
+}
+
+/** Aggiorna timestamp + data_version su una riga esistente */
+function _touchOfferteOutputRow_(rowNum) {
+  const { sh, col } = _openByName_(CRMdatabase, 'offerte_output');
+  sh.getRange(rowNum, col('last_calc_ts')).setValue(new Date());
+  if (col('data_version')) sh.getRange(rowNum, col('data_version')).setValue('v3');
+}
+
+/** FAST-CLONE: clona (in NUOVA riga) l’ultima riga pronta con stesso fingerprint */
+function _fastCloneFromFingerprint_({ refIDofferta, refIDlead, fingerprint }) {
+  try {
+    const sh = CRMdatabase.getSheetByName('offerte_output');
+    if (!sh) return null;
+
+    const head = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(h=>String(h).trim());
+    const col  = (name) => head.indexOf(name) + 1;
+    const need = [
+      'appIDoutput','refIDofferta','refIDlead','calc_fingerprint','calc_ready','last_calc_ts',
+      'percentuale_autoconsumo','anni_ritorno_investimento','percentuale_risparmio_energetico',
+      'produzione_primo_anno','media_vendita','utile_25_anni','incentivo_effettivo','massimale','rata_mensile',
+      'chart_file_url','presentazione_doc_url','offerta_doc_url','print_ts','data_version'
+    ];
+    if (!need.every(n => head.indexOf(n) >= 0)) return null;
+
+    const last = sh.getLastRow();
+    if (last <= 1) return null;
+
+    const vals = sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
+    const iFp    = col('calc_fingerprint') - 1;
+    const iReady = col('calc_ready') - 1;
+
+    // Cerca DALLA FINE la più recente con fingerprint identico e pronta
+    let srcRowIdx = -1;
+    for (let i = vals.length - 1; i >= 0; i--) {
+      const row = vals[i];
+      if (String(row[iFp]).trim() === String(fingerprint).trim()) {
+        const ready = (row[iReady] === true) || (String(row[iReady]).toLowerCase() === 'true');
+        if (ready) { srcRowIdx = i; break; }
+      }
+    }
+    if (srcRowIdx < 0) return null;
+
+    const getFrom = (n) => vals[srcRowIdx][col(n)-1];
+    const cloned = {
+      percentuale_autoconsumo:          getFrom('percentuale_autoconsumo'),
+      anni_ritorno_investimento:        getFrom('anni_ritorno_investimento'),
+      percentuale_risparmio_energetico: getFrom('percentuale_risparmio_energetico'),
+      produzione_primo_anno:            getFrom('produzione_primo_anno'),
+      media_vendita:                    getFrom('media_vendita'),
+      utile_25_anni:                    getFrom('utile_25_anni'),
+      incentivo_effettivo:              getFrom('incentivo_effettivo'),
+      massimale:                        getFrom('massimale'),
+      rata_mensile:                     getFrom('rata_mensile'),
+      chart_file_url:                   String(getFrom('chart_file_url') || '')
+    };
+
+    const newRow = sh.getLastRow() + 1;
+    const newKey = Utilities.getUuid();
+
+    sh.getRange(newRow, col('appIDoutput')).setValue(newKey);
+    sh.getRange(newRow, col('refIDofferta')).setValue(refIDofferta);
+    sh.getRange(newRow, col('refIDlead')).setValue(refIDlead);
+    sh.getRange(newRow, col('calc_fingerprint')).setValue(fingerprint);
+    sh.getRange(newRow, col('calc_ready')).setValue(true);
+    sh.getRange(newRow, col('last_calc_ts')).setValue(new Date());
+    sh.getRange(newRow, col('percentuale_autoconsumo')).setValue(cloned.percentuale_autoconsumo);
+    sh.getRange(newRow, col('anni_ritorno_investimento')).setValue(cloned.anni_ritorno_investimento);
+    sh.getRange(newRow, col('percentuale_risparmio_energetico')).setValue(cloned.percentuale_risparmio_energetico);
+    sh.getRange(newRow, col('produzione_primo_anno')).setValue(cloned.produzione_primo_anno);
+    sh.getRange(newRow, col('media_vendita')).setValue(cloned.media_vendita);
+    sh.getRange(newRow, col('utile_25_anni')).setValue(cloned.utile_25_anni);
+    sh.getRange(newRow, col('incentivo_effettivo')).setValue(cloned.incentivo_effettivo);
+    sh.getRange(newRow, col('massimale')).setValue(cloned.massimale);
+    sh.getRange(newRow, col('rata_mensile')).setValue(cloned.rata_mensile);
+    if (cloned.chart_file_url) sh.getRange(newRow, col('chart_file_url')).setValue(cloned.chart_file_url);
+    sh.getRange(newRow, col('data_version')).setValue('v3');
+
+    _writeOutputKeyToOfferte_(refIDofferta, newKey);
+    Logger.log('[FAST-CLONE] Nuova riga clonata per appID=' + refIDofferta);
+    return { ok:true, appID: refIDofferta, offerte_outputID: newKey, chart_file_url: cloned.chart_file_url, data_version:'v3', clonedFromFingerprint:true };
+  } catch (e) {
+    Logger.log('[FAST-CLONE] errore: ' + e);
+    return null;
+  }
+}
+
+/** Upsert v3: crea/aggiorna riga per un refIDofferta (un solo setValues) */
+function _upsertOfferteOutputV3_(payload) {
+  const sh = CRMdatabase.getSheetByName('offerte_output') || CRMdatabase.insertSheet('offerte_output');
+  const HEADERS = [
+    'appIDoutput','refIDofferta','refIDlead','calc_fingerprint','calc_ready','last_calc_ts',
+    'percentuale_autoconsumo','anni_ritorno_investimento','percentuale_risparmio_energetico',
+    'produzione_primo_anno','media_vendita','utile_25_anni','incentivo_effettivo','massimale','rata_mensile',
+    'chart_file_url','presentazione_doc_url','offerta_doc_url','print_ts','data_version'
+  ];
+  // Assumiamo che l’intestazione sia già corretta; altrimenti qui potresti chiamare _ensureHeaders_
+
+  const { head, col } = _idx_(sh);
+  const last = sh.getLastRow();
+  let rowNum = 0, appIDoutput = '';
+
+  if (last > 1) {
+    const vals = sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
+    const iRef = col('refIDofferta')-1;
+    const idx  = vals.findIndex(r => String(r[iRef]).trim() === String(payload.refIDofferta).trim());
+    if (idx >= 0) {
+      rowNum = idx + 2;
+      appIDoutput = String(vals[idx][col('appIDoutput')-1] || '');
+    }
+  }
+  if (!rowNum) { rowNum = last + 1; appIDoutput = _uuid_(); }
+
+  const row = new Array(head.length).fill('');
+  const put = (name, val) => { const i = col(name)-1; if (i>=0) row[i] = val; };
+
+  put('appIDoutput', appIDoutput);
+  put('refIDofferta', payload.refIDofferta);
+  put('refIDlead', payload.refIDlead || '');
+  put('calc_fingerprint', payload.calc_fingerprint || '');
+  put('calc_ready', payload.calc_ready === true);
+  put('last_calc_ts', payload.last_calc_ts || new Date());
+
+  put('percentuale_autoconsumo',          payload.percentuale_autoconsumo ?? '');
+  put('anni_ritorno_investimento',        payload.anni_ritorno_investimento ?? '');
+  put('percentuale_risparmio_energetico', payload.percentuale_risparmio_energetico ?? '');
+  put('produzione_primo_anno',            payload.produzione_primo_anno ?? '');
+  put('media_vendita',                    payload.media_vendita ?? '');
+  put('utile_25_anni',                    payload.utile_25_anni ?? '');
+  put('incentivo_effettivo',              payload.incentivo_effettivo ?? '');
+  put('massimale',                        payload.massimale ?? '');
+  put('rata_mensile',                     payload.rata_mensile ?? '');
+  put('chart_file_url',                   payload.chart_file_url || '');
+  put('presentazione_doc_url',            payload.presentazione_doc_url || '');
+  put('offerta_doc_url',                  payload.offerta_doc_url || '');
+  put('data_version',                     'v3');
+
+  sh.getRange(rowNum, 1, 1, row.length).setValues([row]);
+  return { appIDoutput, rowNum };
+}
+
+/** Scrive la chiave di ponte su “offerte” */
+function _writeOutputKeyToOfferte_(refIDofferta, appIDoutput) {
+  const { sh, col } = _openByName_(CRMdatabase, 'offerte');
+  const last = sh.getLastRow(); if (last <= 1) return;
+  const vals = sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
+  const iApp = col('appID') - 1;
+  const iKey = col('offerte_outputID') - 1; // colonna presente nel foglio
+  const idx = vals.findIndex(r => String(r[iApp]).trim() === String(refIDofferta).trim());
+  if (idx >= 0) sh.getRange(idx+2, iKey+1).setValue(appIDoutput);
+}
+
+/* -------------------- Entry point: precomputeOffer -------------------- */
+function precomputeOffer(
+  appID,                 // string
+  leadAppID,             // string
+  cartella,              // URL/ID cartella cliente
+  profiloDiConsumo,      // string
+  kwhAnnui,              // number/string
+  provincia,             // string
+  esposizione,           // string
+  prezzoEnergia,         // number/string
+  indirizzo,             // string
+  coordinate,            // string
+  tilt,                  // number/string
+  azimuth,               // number/string
+  tipoModuli,            // string
+  numeroModuli,          // number/string
+  potenzaKWp,            // number/string
+  modelloBatteria,       // string
+  numeroBatterie,        // number/string
+  accumulo,              // string
+  prezzoOffertaTuttoIncluso, // number/string
+  anniDurataIncentivo,   // number/string
+  rid,                   // string
+  tipoPagamento,         // string
+  anniFinanziamento,     // number/string
+  accontoDiretto         // number/string
+) {
+  'use strict';
   const lock = LockService.getScriptLock(); lock.waitLock(30000);
   try {
-    const off = _openSheet_(sheetOfferte || CRMdatabase.getSheetByName('offerte'));
-    const cro = _openSheet_(sheetCronologia || CRMdatabase.getSheetByName('cronologia'));
-    const out = _openSheet_(CRMdatabase.getSheetByName('offerte_output'));
+    if (!appID)     throw new Error('appID mancante');
+    if (!leadAppID) throw new Error('leadAppID mancante');
+    if (!cartella)  throw new Error('cartella mancante');
 
-    // 1) Carica riga OFFERTA
-    const o = _findRowByKey_(off, 'appID', offerAppID);
-    if (!o) throw new Error('Offerta non trovata: ' + offerAppID);
+    // 🔹 NORMALIZZAZIONI PRIMA DEL FINGERPRINT (non toccano Drive/Sheets)
+    const _kwhAnnui          = _toNumber_(kwhAnnui);
+    const _prezzoEnergia     = _toEuroPerKWh_(prezzoEnergia);
+    const _cartellaClienteId = _extractFolderId_(cartella);
 
-    // campi offerta (usa header esatti)
-    const oppRef            = _val(o, 'opportunitàREF');          // FK → cronologia.id
-    const tilt              = _val(o, 'tilt');
-    const azimuth           = _val(o, 'azimuth');
-    const tipoModuli        = _val(o, 'tipo moduli');
-    const numeroModuli      = _val(o, 'numero moduli');
-    const potenzaKwp        = _val(o, 'Potenza [kWp]');
-    const modelloBatteria   = _val(o, 'modello batteria');
-    const numeroBatterie    = _val(o, 'numero batterie');
-    const accumulo          = _val(o, 'Accumulo');
-    const prezzoTotIncl     = _val(o, 'prezzo offerta appros. - tutto incluso');
-    const anniDurIncentivo  = _val(o, 'anni durata incentivo');
-    const rid               = _val(o, 'RID');
-    const tipoPagamento     = _val(o, 'tipo_pagamento');
-    const anniFinanziamento = _val(o, 'anni finanziamento');
-    const accontoDiretto    = _val(o, 'Acconto diretto');
-    const esposizione       = _val(o, 'esposizione'); // es. "30° est"
+    
+    // 1) Calcolo fingerprint (prima di toccare Drive/Sheets)
+    const fingerprint = _buildFingerprint_({
+     tilt, azimuth, tipoModuli, numeroModuli, potenzaKWp,
+     modelloBatteria, numeroBatterie, accumulo, prezzoOffertaTuttoIncluso,
+     anniDurataIncentivo, rid, tipoPagamento, anniFinanziamento, accontoDiretto, coordinate,
+     prezzoEnergia: _prezzoEnergia
+    });
 
-    // 2) Carica riga LEAD (cronologia) via id=opportunitàREF
-    const lead = _findRowByKey_(cro, 'id', oppRef);
-    if (!lead) throw new Error('Lead non trovato (cronologia.id=' + oppRef + ')');
-    const leadAppID   = _val(lead, 'appID'); // per refIDlead in out
-    const cartellaURL = _val(lead, 'cartella');
-    const cartellaId  = _extractId_(cartellaURL);
-    let   prjURL      = _val(lead, 'sottocartella_progetto'); // se presente
-    let   prjId       = prjURL ? _extractId_(prjURL) : newSubfolder(cartellaId, 'progetto');
-    prjURL            = 'https://drive.google.com/drive/folders/' + prjId;
 
-    // Dati per processDatiTecnici (da cronologia)
-    const consumiAnnui      = _val(lead, 'kwh annui');
-    const profiloConsumo    = _val(lead, 'profilo di consumo');
-    const provincia         = _val(lead, 'provincia');
-    const prezzoEnergia     = _val(lead, 'prezzo energia');
-    const indirizzo         = _val(lead, 'indirizzo');
-    const coordinate        = _val(lead, 'coordinate'); // "lat,lon"
-
-    // 3) Fingerprint (loss fissato a 14 per coerenza con uso attuale)
-    const loss = 14;
-    const fpObj = {
-      tilt, azimuth, tipoModuli, numeroModuli, potenzaKwp, modelloBatteria, numeroBatterie,
-      accumulo, prezzoTotIncl, anniDurIncentivo, rid, tipoPagamento, anniFinanziamento,
-      accontoDiretto, coordinate, loss
-    };
-    const calc_fingerprint = _md5_(JSON.stringify(fpObj));
-
-    // 4) Idempotenza su offerte_output
-    const outRow = _findRowByKey_(out, 'refIDofferta', offerAppID);
-    if (outRow && _val(outRow, 'calc_ready') === true && _val(outRow, 'calc_fingerprint') === calc_fingerprint) {
-      // già pronto e identico → esci
-      return;
+    // 1a) Guardia: stessa offerta rilanciata con stesso fingerprint e PNG presente → riuso (no nuova riga)
+    const prev = _getOfferteOutputRowByOffer_(appID);
+    if (prev && prev.calc_ready && prev.calc_fingerprint === fingerprint && prev.chart_file_url) {
+      _writeOutputKeyToOfferte_(appID, prev.appIDoutput);
+      _touchOfferteOutputRow_(prev.rowNum);
+      Logger.log('[PRECOMPUTE] Reused previous row for appID=' + appID);
+      return { ok:true, appID, offerte_outputID: prev.appIDoutput, chart_file_url: prev.chart_file_url, data_version:'v3', reused:true };
     }
 
-    // 5) Assicura DATI TECNICI in progetto/
-    const dtId = _ensureDatiTecniciFile_(prjId, (typeof nomeFileDatiTecnici !== 'undefined' ? nomeFileDatiTecnici : 'dati tecnici'));
-    const dtSS = SpreadsheetApp.openById(dtId);
+    // 2) FAST PATH: clona ultima riga pronta con stesso fingerprint → nuova riga per questo appID
+    const cloned = _fastCloneFromFingerprint_({ refIDofferta: appID, refIDlead: leadAppID, fingerprint });
+    if (cloned) return cloned;
 
-    // 6) Scrivi log in dati tecnici e lancia calcoli PVGIS + analisi
-    if (typeof newLogDatiTecnici === 'function') {
-      newLogDatiTecnici(dtSS, offerAppID);
+    // 3) STANDARD PATH: servono calcoli/grafico
+    const folderProgettoId = newSubfolder(_cartellaClienteId, 'progetto');
+    const chartFolderId    = newSubfolder(folderProgettoId, 'chart');
+
+    // Apri/crea “dati tecnici” e logga la riga origine (usa la tua newLogDatiTecnici)
+    let datiTecFile;
+    const it = DriveApp.getFolderById(folderProgettoId).getFilesByName(nomeFileDatiTecnici);
+    if (it.hasNext()) {
+      datiTecFile = SpreadsheetApp.openById(it.next().getId());
+    } else {
+      const copy = DriveApp.getFileById(DATI_TECNICI_TEMPLATE_ID)
+        .makeCopy(nomeFileDatiTecnici, DriveApp.getFolderById(folderProgettoId));
+      datiTecFile = SpreadsheetApp.openById(copy.getId());
     }
-    const res = processDatiTecnici(
-      dtSS,
-      consumiAnnui,           // kwh annui (cronologia)
-      profiloConsumo,         // profilo di consumo (cronologia)
-      provincia,              // provincia (cronologia)
-      esposizione,            // esposizione (offerte)
-      prezzoEnergia,          // prezzo energia (cronologia)
-      indirizzo,              // indirizzo (cronologia)
-      coordinate,             // coordinate (cronologia)
-      offerAppID,             // appID offerta
-      prjId                   // id cartella progetto
+    newLogDatiTecnici(datiTecFile, appID);
+
+    // Calcoli (processDatiTecnici usa già la cache PVGIS via fetchWithCache_)
+    const risultati = processDatiTecnici(
+      datiTecFile,
+      _kwhAnnui, String(profiloDiConsumo||'').trim(), String(provincia||'').trim(),
+      String(esposizione||'').trim(), _prezzoEnergia, String(indirizzo||'').trim(),
+      String(coordinate||'').trim(), appID /* (ok se passi anche folderProgettoId: l’extra arg non rompe) */
     );
 
-    // 7) Leggi i risultati finali (named ranges) dal file Dati Tecnici
-    const results = _readAnalisiEnergetica_(dtSS);
-
-    // 8) Genera/aggiorna CHART e spostalo in progetto/chart/ con nome timestamp
-    const chartFolderId = _ensureSubfolder_(prjId, 'chart');
-    const ts = _fmtTs_(new Date());
-    let chartFileId = null, chartFileUrl = null;
-
-    if (typeof newCharts === 'function' && typeof CHART_DEFINITIONS !== 'undefined') {
-      const mapping = newCharts(dtSS, prjId, CHART_DEFINITIONS);
-      // prova a prendere il primo chart (o CHART_RITORNO_25_ANNI se presente)
-      const key = mapping['CHART_RITORNO_25_ANNI'] ? 'CHART_RITORNO_25_ANNI' : Object.keys(mapping)[0];
-      if (key) {
-        chartFileId = mapping[key].fileId || mapping[key];
-        const f = DriveApp.getFileById(chartFileId);
-        // move & rename
-        DriveApp.getFolderById(chartFolderId).addFile(f);
-        f.setName(`chart_ritorno_25_anni_${offerAppID}_${ts}.png`);
-        chartFileId = f.getId();
-        chartFileUrl = 'https://drive.google.com/file/d/' + chartFileId + '/view';
+    // Grafico: genera solo se non ne abbiamo già uno riusabile (prev eventuale)
+    let chartUrl = prev?.chart_file_url || '';
+    if (!chartUrl) {
+      const mappings = newCharts(datiTecFile, folderProgettoId, CHART_DEFINITIONS);
+      const chartId  = (function pick(m){ try{ if (m?.RITORNO_25_ANNI?.fileId) return m.RITORNO_25_ANNI.fileId; }catch(_){} const ks=Object.keys(m||{}); return ks.length ? (m[ks[0]]?.fileId||'') : ''; })(mappings);
+      if (chartId) {
+        const f  = DriveApp.getFileById(chartId);
+        const ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd_HHmmss');
+        f.setName(`chart_ritorno_25_anni_${appID}_${ts}.png`);
+        f.moveTo(DriveApp.getFolderById(chartFolderId));
+        chartUrl = f.getUrl();
       }
     }
 
-    // 9) Scrivi/aggiorna OFFERTA_OUTPUT
-    const now = new Date();
-    if (outRow) {
-      _writeRow_(out, outRow._rowNumber, {
-        calc_fingerprint: calc_fingerprint,
-        calc_ready: true,
-        last_calc_ts: now,
-        percentuale_autoconsumo: results.percentuale_autoconsumo,
-        anni_ritorno_investimento: results.anni_ritorno_investimento,
-        percentuale_risparmio_energetico: results.percentuale_risparmio_energetico,
-        media_vendita: results.media_vendita,
-        utile_25_anni: results.utile_25_anni,
-        incentivo_effettivo: results.incentivo_effettivo,
-        massimale: results.massimale,
-        rata_mensile: results.rata_mensile,
-        produzione_primo_anno: results.produzione_primo_anno,
-        chart_file_id: chartFileId,
-        chart_file_url: chartFileUrl
-      });
-    } else {
-      const rowObj = {
-        appIDoutput: Utilities.getUuid(),
-        refIDofferta: offerAppID,
-        refIDlead: leadAppID,
-        calc_fingerprint: calc_fingerprint,
-        calc_ready: true,
-        last_calc_ts: now,
-        percentuale_autoconsumo: results.percentuale_autoconsumo,
-        anni_ritorno_investimento: results.anni_ritorno_investimento,
-        percentuale_risparmio_energetico: results.percentuale_risparmio_energetico,
-        media_vendita: results.media_vendita, 
-        utile_25_anni: results.utile_25_anni,
-        incentivo_effettivo: results.incentivo_effettivo,
-        massimale: results.massimale,
-        rata_mensile: results.rata_mensile,
-        produzione_primo_anno: results.produzione_primo_anno,
-        chart_file_id: chartFileId,
-        chart_file_url: chartFileUrl,
-        // campi doc e print_ts rimangono vuoti: li compilerà il print runner
-        presentazione_doc_id: '',
-        presentazione_doc_url: '',
-        offerta_doc_id: '',
-        offerta_doc_url: '',
-        print_ts: ''
-      };
-      _appendRow_(out, rowObj);
-    }
+    // Persistenza risultati
+    const up = _upsertOfferteOutputV3_({
+      refIDofferta: appID,
+      refIDlead:    leadAppID,
+      calc_fingerprint: fingerprint,
+      calc_ready: true,
+      last_calc_ts: new Date(),
+      percentuale_autoconsumo:          risultati.percentuale_autoconsumo,
+      anni_ritorno_investimento:        risultati.anni_ritorno_investimento,
+      percentuale_risparmio_energetico: risultati.percentuale_risparmio_energetico,
+      produzione_primo_anno:            risultati.produzione_primo_anno,
+      media_vendita:                    risultati.media_vendita,
+      utile_25_anni:                    risultati.utile_25_anni,
+      incentivo_effettivo:              risultati.incentivo_effettivo,
+      massimale:                        risultati.massimale,
+      rata_mensile:                     risultati.rata_mensile,
+      chart_file_url:                   chartUrl
+    });
+
+    _writeOutputKeyToOfferte_(appID, up.appIDoutput);
+    return { ok:true, appID, offerte_outputID: up.appIDoutput, chart_file_url: chartUrl, data_version:'v3' };
+
   } finally {
     lock.releaseLock();
   }
 }
-
-/*** Helpers ***/
-function _openSheet_(sh) {
-  if (!sh) throw new Error('Sheet non trovato');
-  const head = sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(h => String(h).trim());
-  const idx  = Object.fromEntries(head.map((h,i)=>[h,i]));
-  return { sh, head, idx };
-}
-function _val(rowObj, colName) {
-  const { head, idx } = rowObj._table;
-  const i = idx[colName]; if (i == null) throw new Error('Colonna mancante: ' + colName);
-  return rowObj._values[i];
-}
-function _findRowByKey_(table, keyCol, keyVal) {
-  const { sh, head, idx } = table;
-  const iKey = idx[keyCol]; if (iKey == null) throw new Error('Colonna chiave mancante: ' + keyCol);
-  const last = sh.getLastRow(); if (last <= 1) return null;
-  const rng  = sh.getRange(2,1,last-1,sh.getLastColumn()).getValues();
-  for (let r=0; r<rng.length; r++){
-    if (String(rng[r][iKey]).trim() === String(keyVal).trim()){
-      return { _table: table, _rowNumber: r+2, _values: rng[r] };
-    }
-  }
-  return null;
-}
-function _writeRow_(table, rowNumber, obj) {
-  const { sh, idx } = table;
-  const row = sh.getRange(rowNumber, 1, 1, sh.getLastColumn()).getValues()[0];
-  Object.keys(obj).forEach(k=>{
-    if (idx[k] != null) row[idx[k]] = obj[k];
-  });
-  sh.getRange(rowNumber, 1, 1, sh.length || sh.getLastColumn()).setValues([row]);
-}
-function _appendRow_(table, obj) {
-  const { sh, head, idx } = table;
-  const row = head.map(h => idx[h] != null ? (obj[h] ?? '') : '');
-  // sopra non riempie correttamente (head order). Meglio costruire array per indice:
-  const arr = new Array(head.length).fill('');
-  Object.keys(obj).forEach(k=>{
-    if (idx[k] != null) arr[idx[k]] = obj[k];
-  });
-  sh.appendRow(arr);
-}
-function _extractId_(urlOrId) {
-  const m = String(urlOrId||'').match(/[-\\w]{25,}/);
-  return m ? m[0] : '';
-}
-function _ensureDatiTecniciFile_(projectFolderId, fileName) {
-  const f = DriveApp.getFolderById(projectFolderId);
-  const it = f.getFilesByName(fileName);
-  if (it.hasNext()) return it.next().getId();
-  const file = DriveApp.getFileById(DATI_TECNICI_TEMPLATE_ID).makeCopy(fileName, f);
-  return file.getId();
-}
-function _ensureSubfolder_(parentId, name) {
-  const parent = DriveApp.getFolderById(parentId);
-  const it = parent.getFoldersByName(name);
-  if (it.hasNext()) return it.next().getId();
-  return parent.createFolder(name).getId();
-}
-function _md5_(s) {
-  const raw = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, s);
-  return raw.map(b => (b+256&255).toString(16).padStart(2,'0')).join('');
-}
-function _readAnalisiEnergetica_(ss) {
-  // Named ranges nel file Dati Tecnici (allineati con main.js aggiornato)
-  const get = n => ss.getRangeByName(n).getValue();
-  return {
-    percentuale_autoconsumo:       get('percentuale_autoconsumo'),
-    media_vendita:                 get('media_vendita'),
-    anni_ritorno_investimento:     get('anni_ritorno_investimento'),
-    percentuale_risparmio_energetico:get('percentuale_risparmio_energetico'),
-    utile_25_anni:                 get('utile_25_anni'),
-    incentivo_effettivo:           get('incentivo_effettivo'),
-    massimale:                     get('massimale'),
-    rata_mensile:                  get('rata_mensile'),
-    produzione_primo_anno:         get('produzione_primo_anno')
-  };
-}
-function _fmtTs_(d) {
-  const pad = n => String(n).padStart(2,'0');
-  return d.getFullYear().toString() +
-         pad(d.getMonth()+1) +
-         pad(d.getDate()) + '_' +
-         pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
-}
-
