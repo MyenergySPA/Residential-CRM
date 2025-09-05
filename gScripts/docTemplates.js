@@ -11,10 +11,10 @@
   offerta_Finanz: '1RCr8lgM98ryQwMiGFqecMHiWgIHsPN0tfV5HN82eYr4',
   presentazione_COND: '1iIom4lvX5ymUtQYucba2QyPiwOY94ySErcX19BowMrg',
   presentazione_Finanz_COND: '1pUcvT8cJtJgXs_ax-vExw5nfKraRqSsBl6gfn63dX7k',
-  presentazione_PNRR: '1l-2iiXSI5mtPuEE6f5dWSUSKkHacHxNQKxtrDXQ0NMQ' ,
-  offerta_PNRR: '1dEfWpHHEAyUjz8eJEHhdGP0hqrpnHpZV05KYad0EMq8',
-  presentazione_finanz_PNRR: '1LWzIEdTpzKVlq80FvO8JJ9XBSoEkVLcanC4mvC5_se8',
-  offerta_finanz_PNRR: '17S0KGjkbExL_vCBKevTUwpfAcBl_J7hkJkgdDroQdeA',
+  presentazione_PNRR: '1XYDLbJymoNqU8B1nYqJm0k52-SU5O19G1Xzph_rjShg' ,
+  offerta_PNRR: '1_PNr5Y6svOADvgKZIjFjKsoDFpNV6TkOxivLIVqcZdA',
+  presentazione_finanz_PNRR: '1zMIjekT-K_JWssZidSBjSuog_LfcHZjMLcEbePnP_t8',
+  offerta_finanz_PNRR: '1RCr8lgM98ryQwMiGFqecMHiWgIHsPN0tfV5HN82eYr4',
   }
 
 /**
