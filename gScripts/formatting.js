@@ -1,4 +1,5 @@
 /**
+ * formatting.gs v1
  * Formats a number using the Italian locale.
  * @param {number} value - The number to format.
  * @param {number} decimals - The number of decimal places.
@@ -131,4 +132,23 @@ function addHyperlink(corpo, searchText, url) {
     foundElement = corpo.findText(searchText, foundElement);
   }
   Logger.log('Hyperlink aggiunto.');
+}
+
+//numeri in → numero JS out
+function parseItNumber(v) {
+  if (typeof v === 'number') return v;
+  const s = String(v || '').replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
+  const n = Number(s);
+  if (!isFinite(n)) throw new Error('Valore numerico non valido: ' + v);
+  return n;
+}
+
+
+// numeri + format
+function writeNumberWithFormat(sh, a1, value, numberFormat) {
+  const n = parseItNumber(value);
+  const r = sh.getRange(a1);
+  r.setValue(n);
+  if (numberFormat) r.setNumberFormat(numberFormat);
+  return n;
 }
