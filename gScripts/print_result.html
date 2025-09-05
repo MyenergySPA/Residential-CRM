@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title><?= ok ? (status==='printed' ? 'Offerte pronte' : 'Elaborazione in corso') : 'Errore' ?> - Myenergy</title>
+  <style>
+    :root{ --c1:#2270a8; --c2:#da6418; --bg:#f5f7fb; --fg:#0f172a; }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    .wrap{max-width:720px;margin:42px auto;padding:24px}
+    .card{background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.07);padding:28px 22px;text-align:center}
+    .logo{width:180px;margin:0 auto 16px;display:block}
+    h2{margin:8px 0 4px;font-size:22px;color:var(--c1)}
+    p.lead{margin:6px 0 22px;color:#334155}
+
+    /* griglia che si adatta da sola al numero di pulsanti */
+    .row{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap:12px;
+      max-width:600px;
+      margin:0 auto;
+      justify-items:center;
+      align-items:stretch;
+    }
+
+    .btn{
+      width:100%;
+      display:inline-flex;align-items:center;justify-content:center;gap:10px;
+      padding:14px 18px;border-radius:12px;border:none;text-decoration:none;
+      font-weight:700;color:#fff;cursor:pointer;user-select:none;transition:transform .06s, filter .2s;
+      box-shadow:0 8px 18px rgba(0,0,0,.12);
+    }
+    .btn:active{transform:scale(.98)}
+    .btn svg{width:22px;height:22px;flex:0 0 22px}
+    .b1{background:linear-gradient(135deg,var(--c1),#39a0ff)}
+    .b2{background:linear-gradient(135deg,var(--c2),#ff9849)}
+    .b3{background:linear-gradient(135deg,#16a34a,#22c55e)}
+    .muted{font-size:13px;color:#64748b;margin-top:16px}
+    .badge{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:700;font-size:12px;margin:8px 0 14px}
+    .ok{background:rgba(34,197,94,.12);color:#15803d;border:1px solid rgba(34,197,94,.35)}
+    .warn{background:rgba(245,158,11,.12);color:#a16207;border:1px solid rgba(245,158,11,.35)}
+    .err{background:rgba(239,68,68,.12);color:#991b1b;border:1px solid rgba(239,68,68,.35)}
+    .sep{height:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <img class="logo" src="https://i.imgur.com/KyIh0P7.png" alt="Myenergy" />
+
+      <? if (ok && status==='printed') { ?>
+        <div class="badge ok">✅ Offerte generate</div>
+      <? } else if (ok) { ?>
+        <div class="badge warn">⏳ Calcoli in corso</div>
+      <? } else { ?>
+        <div class="badge err">❌ Errore</div>
+      <? } ?>
+
+      <h2>
+        <? if (ok && status==='printed') { ?>Documenti pronti
+        <? } else if (ok) { ?>Elaborazione avviata
+        <? } else { ?>Si è verificato un errore<? } ?>
+      </h2>
+
+      <p class="lead">
+        <? if (msg) { ?><?= msg ?>
+        <? } else if (ok && status==='printed') { ?>Puoi aprire i file con i pulsanti qui sotto.
+        <? } else { ?>Ri-apri questa pagina fra poco per scaricare l’offerta.<? } ?>
+      </p>
+
+      <? /* Costruisco dinamicamente la lista pulsanti disponibili */ ?>
+      <? var buttons = [];
+         if (presentazioneDocUrl) buttons.push({key:'pres', url:presentazioneDocUrl, cls:'btn b1', label:'Apri Presentazione'});
+         if (offertaDocUrl)       buttons.push({key:'off',  url:offertaDocUrl,       cls:'btn b2', label:'Apri Offerta'});
+         if (folderUrl)           buttons.push({key:'fold', url:folderUrl,           cls:'btn b3', label:'Apri cartella del giorno'});
+      ?>
+
+      <? if (buttons.length) { ?>
+        <div class="row">
+          <? for (var i=0;i<buttons.length;i++){ var b=buttons[i]; ?>
+            <a class="<?= b.cls ?>" target="_blank" rel="noopener" href="<?= b.url ?>">
+              <? if (b.key==='pres') { ?>
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v12H5.17L4 17.17V4zm0 16h16v2H4v-2z"/></svg>
+              <? } else if (b.key==='off') { ?>
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM14 3.5V9h5.5"/></svg>
+              <? } else { ?>
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4l2 2h8a2 2 0 0 1 2 2v9a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V6a2 2 0 0 1 2-2h6z"/></svg>
+              <? } ?>
+              <span><?= b.label ?></span>
+            </a>
+          <? } ?>
+        </div>
+      <? } else { ?>
+        <p class="muted">I link non sono ancora disponibili. <a href="" onclick="location.reload();return false;">Ricarica</a></p>
+      <? } ?>
+
+      <div class="sep"></div>
+      <p class="muted">ID offerta: <b><?= offerId || '-' ?></b></p>
+    </div>
+  </div>
+</body>
+</html>
