@@ -1,48 +1,54 @@
 /**
- * versione 2.0
- * Aggiorna il log dei dati tecnici con l'ultima offerta generata, mettendo l'appID seguito dal numero della riga.
- * Questa funzione si aspetta che la variabile 'sheetOfferte' sia definita globalmente.
- *
- * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} nuovoFileDatiTecnici - Riferimento al file di dati tecnici appena creato.
- * @param {string} appID - ID di appSheet relativo all'offerta
+ * v2.1 — Log rapido: cerca l’ultima riga per appID leggendo solo la colonna appID.
+ * - Niente getDataRange (evita di caricare tutto il foglio "offerte")
+ * - Scansione dal fondo per prendere l’ultima occorrenza (la più recente)
+ * - Carica una sola riga completa quando trova la corrispondenza
  */
 function newLogDatiTecnici(nuovoFileDatiTecnici, appID) {
   Logger.log('Aggiornamento log dati tecnici per appID: ' + appID);
 
-  // La funzione ora utilizza la variabile globale 'sheetOfferte', che viene
-  // inizializzata dallo script principale 'main'.
   if (typeof sheetOfferte === 'undefined' || !sheetOfferte) {
-    throw new Error("La variabile globale 'sheetOfferte' non è definita. Assicurati che lo script 'main' la inizializzi correttamente prima di chiamare questa funzione.");
+    throw new Error("La variabile globale 'sheetOfferte' non è definita. Inizializzala in 'main' prima di chiamare questa funzione.");
   }
 
-  const data = sheetOfferte.getDataRange().getValues();  // Ottieni tutti i dati del foglio "offerte"
-  const appIDColIndex = data[0].indexOf('appID');  // Trova l'indice della colonna appID
-  
-  if (appIDColIndex === -1) {
-    throw new Error('Colonna "appID" non trovata nel foglio "offerte"');
+  const sh = sheetOfferte;
+  const lastRow = sh.getLastRow();
+  const lastCol = sh.getLastColumn();
+  if (lastRow < 2) throw new Error('Il foglio "offerte" non contiene dati.');
+
+  // 1) Trova l’indice colonna "appID" dall’intestazione (riga 1)
+  const header = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
+  const appIDColIndex = header.indexOf('appID') + 1; // 1-based
+  if (appIDColIndex <= 0) throw new Error('Colonna "appID" non trovata nel foglio "offerte".');
+
+  // 2) Leggi SOLO la colonna appID (dalla riga 2 in giù) e cerca DAL FONDO
+  const colValues = sh.getRange(2, appIDColIndex, lastRow - 1, 1).getValues(); // [[val], [val], ...]
+  let foundRowNum = 0; // 1-based riga intera del foglio
+  for (let i = colValues.length - 1; i >= 0; i--) {
+    if (String(colValues[i][0]).trim() === String(appID).trim()) {
+      foundRowNum = i + 2; // +2 perché partiamo dalla riga 2
+      break;
+    }
   }
+  if (!foundRowNum) throw new Error('Nessuna riga trovata con appID: ' + appID);
 
-  // Trova la riga con l'appID corrispondente
-  const selectedRow = data.find(row => row[appIDColIndex] === appID);
-  if (!selectedRow) {
-    throw new Error('Nessuna riga trovata con appID: ' + appID);
-  }
+  // 3) Carica SOLO la riga completa trovata
+  const selectedRow = sh.getRange(foundRowNum, 1, 1, lastCol).getValues()[0];
 
-  Logger.log('Riga selezionata per appID: ' + JSON.stringify(selectedRow));
+  Logger.log('Riga selezionata per appID alla riga ' + foundRowNum + ': ' + JSON.stringify(selectedRow));
 
+  // 4) Scrivi nel nuovo file "dati tecnici"
   const nuovoSheet = nuovoFileDatiTecnici.getActiveSheet();
-  const ultimaRigaVuota = nuovoSheet.getLastRow() + 1;  // Calcola l'ultima riga vuota
-  
-  // Inserisci l'appID seguito dal numero della riga nella prima colonna
-  selectedRow[0] = `${appID}-${ultimaRigaVuota}`;
+  const ultimaRigaVuota = nuovoSheet.getLastRow() + 1;
 
-  // Scrivi la riga selezionata nel nuovo foglio
+  // Prima cella = appID-rigaLog (mantieni la tua semantica)
+  selectedRow[0] = appID + '-' + ultimaRigaVuota;
+
+  // Un solo setValues per tutta la riga
   nuovoSheet.getRange(ultimaRigaVuota, 1, 1, selectedRow.length).setValues([selectedRow]);
-
 
   Logger.log('Log dati tecnici aggiornato con successo. appID: ' + appID + '-' + ultimaRigaVuota);
 }
-
 
 /** * Incolla sul file i valori specificati, chiama l'API PVGIS e raccoglie i risultati.
  * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} nuovoFileDatiTecnici
@@ -71,23 +77,24 @@ function processDatiTecnici(nuovoFileDatiTecnici, consumi_annui, profilo_di_cons
   Logger.log('Impostazione dei valori nel foglio "analisi energetica".');
 
 
-  // Format numbers using formatting functions
-  let formattedConsumiAnnui = formatNumberItalian(consumi_annui, 2);
-  let formattedPrezzoEnergia = formatNumberItalian(prezzo_energia, 2);
+  // valori numerici puri
+  const nConsumi = parseItNumber(consumi_annui);
+  const nPrezzo  = parseItNumber(prezzo_energia);
 
 
-  // format values and get pvgis data
-  sheetAnalisiEnergetica.getRange('consumi_annui').setValue(formattedConsumiAnnui);
-
+  // scrivi NUMERI, non stringhe formattate
+  sheetAnalisiEnergetica.getRange('consumi_annui').setValue(nConsumi);
   sheetAnalisiEnergetica.getRange('profilo_di_consumo').setValue(profilo_di_consumo);
-
   sheetAnalisiEnergetica.getRange('provincia').setValue(provincia);
-
   sheetAnalisiEnergetica.getRange('esposizione').setValue(esposizione);
+  sheetAnalisiEnergetica.getRange('prezzo_energia').setValue(nPrezzo);
 
-  sheetAnalisiEnergetica.getRange('prezzo_energia').setValue(formattedPrezzoEnergia);
+  // forza il formato di visualizzazione (evita % / interpretazioni strane)
+  sheetAnalisiEnergetica.getRange('consumi_annui').setNumberFormat('#,##0');       // kWh
+  sheetAnalisiEnergetica.getRange('prezzo_energia').setNumberFormat('0.00 "€"');  // €/kWh
 
-
+  // (opzionale) diagnostica: intercetta numeri improbabili
+  if (nPrezzo > 2) Logger.log('[WARN] prezzo_energia anomalo: ' + nPrezzo);
 
   // Recupera i valori calcolati dal foglio per la chiamata API
 
@@ -120,25 +127,13 @@ function processDatiTecnici(nuovoFileDatiTecnici, consumi_annui, profilo_di_cons
 
   Logger.log("API URL: " + apiUrl);
 
-  // Esegui la chiamata API
-  let response = UrlFetchApp.fetch(apiUrl, { 'muteHttpExceptions': true });
-  let responseData = response.getContentText();
-  
-  // Parsing della risposta JSON
-  let pvgisData;
-  try {
-    pvgisData = JSON.parse(responseData);
-  } catch (e) {
-    Logger.log("Errore durante il parsing del JSON da PVGIS: " + responseData);
-    throw new Error("La risposta da PVGIS non è un JSON valido: " + responseData);
-  }
+// Esegui la chiamata API con CACHE (fino a 6 ore)
+let pvgisData = fetchWithCache_(apiUrl, 21600);
 
-
-  // Controlla se ci sono errori nella risposta dell'API
-  if (response.getResponseCode() !== 200 || !pvgisData.outputs || !pvgisData.outputs.monthly) {
-      Logger.log("Errore dalla API PVGIS: " + responseData);
-      throw new Error("La chiamata a PVGIS ha restituito un errore: " + responseData);
-  }
+// Validazione struttura
+if (!pvgisData || !pvgisData.outputs || !pvgisData.outputs.monthly) {
+  throw new Error("Struttura risposta PVGIS inattesa: " + JSON.stringify(pvgisData).slice(0, 200));
+}
 
   // Naviga la struttura JSON per ottenere i valori di produzione mensile (E_m)
   let monthlyOutputs = pvgisData.outputs.monthly.fixed;
@@ -207,4 +202,37 @@ function processDatiTecnici(nuovoFileDatiTecnici, consumi_annui, profilo_di_cons
 
   // Restituisci i risultati
   return results;
+}
+
+function fetchWithCache_(url, ttlSeconds) {
+  var cache = CacheService.getScriptCache();
+  var key = 'PV_' + Utilities.base64Encode(url).slice(0, 80);
+
+  // cache hit
+  var hit = cache.get(key);
+  if (hit) {
+    try { return JSON.parse(hit); } catch (_) { /* ignora e rifai fetch */ }
+  }
+
+  // fetch live
+  var res  = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
+  var code = res.getResponseCode();
+  var text = res.getContentText();
+
+  if (code >= 400) {
+    // NON mettere in cache le risposte di errore
+    throw new Error('HTTP ' + code + ' da PVGIS. Body: ' + text.slice(0, 200));
+  }
+
+  var json;
+  try {
+    json = JSON.parse(text);
+  } catch (e) {
+    // NON mettere in cache risposte non-JSON
+    throw new Error('Risposta PVGIS non JSON. Body: ' + text.slice(0, 200));
+  }
+
+  // metti in cache massimo 6 ore
+  cache.put(key, JSON.stringify(json), Math.min(ttlSeconds || 21600, 21600));
+  return json;
 }
