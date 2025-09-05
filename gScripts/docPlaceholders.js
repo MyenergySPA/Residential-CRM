@@ -1,4 +1,5 @@
   /**
+   * docPlaceholders.gs v2
  * Crea una mappatura dei segnaposto con i valori forniti come input.
  *
  * @param {Object} params - Oggetto contenente tutti i parametri necessari per la mappatura.
@@ -6,7 +7,7 @@
  */
 function createPlaceholderMapping(params) {
   Logger.log('Creazione della mappatura dei segnaposto.');
-  Logger.log('Valore originale di detrazione: ' + params.detrazione + ' (tipo: ' + typeof params.detrazione + ')');
+  Logger.log('Valore originale di incentivo_effettivo: ' + params.incentivo_effettivo + ' (tipo: ' + typeof params.incentivo_effettivo + ')');
   Logger.log('Valore originale di iva_offerta: ' + params.iva_offerta + ' (tipo: ' + typeof params.iva_offerta + ')');
   Logger.log('Valore originale di prezzo_offerta: ' + params.prezzo_offerta + ' (tipo: ' + typeof params.prezzo_offerta + ')');
 
@@ -56,7 +57,6 @@ function createPlaceholderMapping(params) {
     '{{numero_ottimizzatori}}': params.numero_ottimizzatori,
     '{{marca_ottimizzatori}}': params.marca_ottimizzatori,
     '{{numero_linea_vita}}': params.numero_linea_vita,
-    '{{detrazione}}': formatCurrency(params.detrazione),
     '{{anni_ritorno_investimento}}': formatNumber(params.anni_ritorno_investimento, 1),
     '{{utile_25_anni}}': formatCurrency(params.utile_25_anni),
     '{{percentuale_autoconsumo}}': formatPercentage(params.percentuale_autoconsumo),
@@ -74,6 +74,12 @@ function createPlaceholderMapping(params) {
     '{{prezzo_offerta_finanz}}': formatCurrency(params.rata_mensile * params.numero_rate_mensili + params.acconto_diretto),
     '{{tilt}}': formatNumber(params.tilt, 0),
     '{{azimuth}}': formatNumber(params.azimuth, 0),
+    '{{incentivo_effettivo}}': formatCurrency(params.incentivo_effettivo), // nuovo nome
+    '{{detrazione}}'         : formatCurrency(params.incentivo_effettivo), // alias legacy 
+    '{{descrizione_offerta}}': params.descrizione_offerta || '',
+    '{{nome_incentivo}}'     : params.nome_incentivo     || '',
+    '{{TAEG}}'               : params.taeg,
+    '{{importo_totale_dovuto}}': formatCurrency(params.importo_totale_dovuto)
   };
 }
 
