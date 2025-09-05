@@ -1,173 +1,116 @@
-// versione 2.0
-// Definizione dei templates doc di offerta
- TEMPLATES = {
-  presentazione_Finanz: '1zMIjekT-K_JWssZidSBjSuog_LfcHZjMLcEbePnP_t8',
-  offerta_MAT: '1gMJGZZA7LwdugXKEFTK5LbJU2iiIIs6Ee5zBnlW81es',
-  presentazione: '1XYDLbJymoNqU8B1nYqJm0k52-SU5O19G1Xzph_rjShg',
-  offerta: '1_PNr5Y6svOADvgKZIjFjKsoDFpNV6TkOxivLIVqcZdA',
-  offerta_REDEN: '1Pl16i3gROkfvxXYSIi8C1q9paqZ6xo7LF5W1isZcXFA',
-  presentazione_REDEN: '1tGpVVMZL1Yuw5JIlytc-KiqxeQxd7Wegj74fLj_snMg',
-  offerta_GSE: '1t5S9CYogDPAtKhy2ejMVELKjAkkieqfu31eIFF06GYg',
-  offerta_Finanz: '1RCr8lgM98ryQwMiGFqecMHiWgIHsPN0tfV5HN82eYr4',
-  presentazione_COND: '1iIom4lvX5ymUtQYucba2QyPiwOY94ySErcX19BowMrg',
-  presentazione_Finanz_COND: '1pUcvT8cJtJgXs_ax-vExw5nfKraRqSsBl6gfn63dX7k',
-  presentazione_PNRR: '1XYDLbJymoNqU8B1nYqJm0k52-SU5O19G1Xzph_rjShg' ,
-  offerta_PNRR: '1_PNr5Y6svOADvgKZIjFjKsoDFpNV6TkOxivLIVqcZdA',
-  presentazione_finanz_PNRR: '1zMIjekT-K_JWssZidSBjSuog_LfcHZjMLcEbePnP_t8',
-  offerta_finanz_PNRR: '1RCr8lgM98ryQwMiGFqecMHiWgIHsPN0tfV5HN82eYr4',
+  /**
+   * docPlaceholders.gs v2
+ * Crea una mappatura dei segnaposto con i valori forniti come input.
+ *
+ * @param {Object} params - Oggetto contenente tutti i parametri necessari per la mappatura.
+ * @returns {Object} Mappatura dei segnaposto con i relativi valori.
+ */
+function createPlaceholderMapping(params) {
+  Logger.log('Creazione della mappatura dei segnaposto.');
+  Logger.log('Valore originale di incentivo_effettivo: ' + params.incentivo_effettivo + ' (tipo: ' + typeof params.incentivo_effettivo + ')');
+  Logger.log('Valore originale di iva_offerta: ' + params.iva_offerta + ' (tipo: ' + typeof params.iva_offerta + ')');
+  Logger.log('Valore originale di prezzo_offerta: ' + params.prezzo_offerta + ' (tipo: ' + typeof params.prezzo_offerta + ')');
+
+  return {
+    '{{tipo_opportunità}}': params.tipo_opportunita,
+    '{{id}}': params.id,
+    '{{yy}}': params.yy,
+    '{{nome}}': params.nome_referente,
+    '{{cognome}}': params.cognome_referente,
+    '{{indirizzo}}': params.indirizzo,
+    '{{telefono}}': params.telefono,
+    '{{email}}': params.email,
+    '{{data ultima modifica}}': params.dataOggi,
+    '{{numero_moduli}}': params.numero_moduli,
+    '{{marca_moduli}}': params.marca_moduli,
+    '{{numero_inverter}}': params.numero_inverter,
+    '{{marca_inverter}}': params.marca_inverter,
+    '{{numero_batteria}}': params.numero_batteria,
+    '{{capacità batteria}}': params.capacita_batteria,
+    '{{totale_capacità_batterie}}': params.totale_capacita_batterie,
+    '{{marca_batteria}}': params.marca_batteria,
+    '{{tetto}}': params.tetto,
+    '{{potenza_impianto}}': formatNumber(params.potenza_impianto, 2),
+    '{{produzione_primo_anno}}': formatNumber(params.produzione_primo_anno, 0),
+    '{{alberi}}': formatNumber(params.alberi, 0),
+    '{{testo_aggiuntivo}}': params.testo_aggiuntivo,
+    '{{tipo_pagamento}}': params.tipo_pagamento,
+    '{{condizione_pagamento_1}}': params.condizione_pagamento_1,
+    '{{condizione_pagamento_2}}': params.condizione_pagamento_2,
+    '{{condizione_pagamento_3}}': params.condizione_pagamento_3,
+    '{{condizione_pagamento_4}}': params.condizione_pagamento_4,
+    '{{imponibile_offerta}}': formatCurrency(params.imponibile_offerta),
+    '{{iva_offerta}}': formatCurrency(params.iva_offerta, 0),
+    '{{iva_percentuale}}': params.iva_percentuale *= 100,
+    '{{prezzo_offerta}}': formatCurrency(params.prezzo_offerta),
+    '{{anni_finanziamento}}': formatNumber(params.anni_finanziamento, 0),
+    '{{rata_mensile}}': formatCurrency(params.rata_mensile),
+    '{{numero_rate_mensili}}': formatNumber(params.numero_rate_mensili, 0),
+    '{{esposizione}}': params.esposizione,
+    '{{area_m2_impianto}}': formatNumber(params.area_m2_impianto, 2),
+    '{{scheda_tecnica_moduli}}': 'Link scheda tecnica moduli',
+    '{{scheda_tecnica_inverter}}': 'Link scheda tecnica inverter',
+    '{{scheda_tecnica_batterie}}': 'Link scheda tecnica batterie',
+    '{{scheda_tecnica_ottimizzatori}}': 'Link scheda tecnica ottimizzatori',
+    '{{numero_colonnina_74kw}}': params.numero_colonnina_74kw,
+    '{{numero_colonnina_22kw}}': params.numero_colonnina_22kw,
+    '{{numero_ottimizzatori}}': params.numero_ottimizzatori,
+    '{{marca_ottimizzatori}}': params.marca_ottimizzatori,
+    '{{numero_linea_vita}}': params.numero_linea_vita,
+    '{{anni_ritorno_investimento}}': formatNumber(params.anni_ritorno_investimento, 1),
+    '{{utile_25_anni}}': formatCurrency(params.utile_25_anni),
+    '{{percentuale_autoconsumo}}': formatPercentage(params.percentuale_autoconsumo),
+    '{{media_vendita}}': formatCurrency(params.media_vendita),
+    '{{prezzo_energia}}': formatCurrency(params.prezzo_energia),
+    '{{percentuale_risparmio_energetico}}': formatPercentage(params.percentuale_risparmio_energetico),
+    '{{durata_incentivo}}': formatNumber(params.durata_incentivo, 0),
+    '{{acconto_diretto}}' : formatCurrency(params.acconto_diretto),
+    '{{condominio}}' : params.condominio,
+    '{{garanzia_moduli}}' : params.garanzia_moduli,
+    '{{garanzia_inverter}}' : params.garanzia_inverter,
+    '{{garanzia_batterie}}' : params.garanzia_batterie,
+    '{{tipo_incentivo}}' : params.tipo_incentivo,
+    '{{massimale}}': formatCurrency(params.massimale),
+    '{{prezzo_offerta_finanz}}': formatCurrency(params.rata_mensile * params.numero_rate_mensili + params.acconto_diretto),
+    '{{tilt}}': formatNumber(params.tilt, 0),
+    '{{azimuth}}': formatNumber(params.azimuth, 0),
+    '{{incentivo_effettivo}}': formatCurrency(params.incentivo_effettivo), // nuovo nome
+    '{{detrazione}}'         : formatCurrency(params.incentivo_effettivo), // alias legacy 
+    '{{descrizione_offerta}}': params.descrizione_offerta || '',
+    '{{nome_incentivo}}'     : params.nome_incentivo     || '',
+    '{{TAEG}}'               : params.taeg,
+    '{{importo_totale_dovuto}}': formatCurrency(params.importo_totale_dovuto)
+  };
+}
+
+
+/*
+ * Funzione per sostituire i segnaposto con i valori nel documento.
+ * Sostituisce i valori vuoti con un carattere indicato.
+ *
+ * @param {Body} docBody - Il corpo del documento Google Docs.
+ * @param {Object} placeholders - Oggetto mappa che contiene i segnaposto e i loro valori.
+ */
+function replacePlaceholders(docBody, placeholders) {
+  Logger.log('Replacing text placeholders in the document.');
+
+  // Replace text placeholders
+  for (const key in placeholders) {
+    let value = placeholders[key];
+
+    // Handle undefined or null values
+    if (value === undefined || value === null) {
+      value = ""; // Replace with an empty string
+    }
+
+    // Log each key-value pair for debugging
+    Logger.log(`Replacing placeholder: ${key} with value: ${value}`);
+
+    try {
+      docBody.replaceText(key, value);
+    } catch (error) {
+      Logger.log(`Error replacing placeholder ${key} with value ${value}: ${error.message}`);
+      throw error; // Rethrow the error for visibility
+    }
   }
-
-/**
- * Configurazione per i documenti da creare in base al tipo di opportunità.
- * Per ogni tipo di opportunità (ad es. "MAT", "COND", …) viene definito un array di documenti.
- * Ogni documento ha:
- *  - templateId: un valore fisso o una funzione che, in base ai parametri, restituisce l'ID del template.
- *  - nomeFile: una funzione che genera il nome del file.
- */
-const DOCUMENT_CONFIG = {
-
-  MAT: [
-    {
-      // Per "MAT" si crea solo l'offerta (senza presentazione)
-      templateId: TEMPLATES.offerta_MAT,
-      nomeFile: ({ nome_referente, cognome_referente, dataOggi }) => `Offerta Myenergy ${nome_referente} ${cognome_referente} ${dataOggi}`
-    }
-  ],
-
-  ADD: [
-    {
-      // Per "ADD", uguale a "MAT"
-      templateId: TEMPLATES.offerta_MAT,
-      nomeFile: ({ nome_referente, cognome_referente, dataOggi }) => `Offerta Myenergy ${nome_referente} ${cognome_referente} ${dataOggi}`
-    }
-  ], 
-
-  COND: [
-    {
-      // Per "COND": documento di presentazione
-      templateId: ({ tipo_pagamento }) =>
-        tipo_pagamento === "Finanziamento" ? TEMPLATES.presentazione_Finanz_COND : TEMPLATES.presentazione_COND,
-      nomeFile: ({ nome_referente, cognome_referente }) => `Presentazione offerta Myenergy ${nome_referente} ${cognome_referente}`
-    },
-    {
-      // Per "COND": documento offerta
-      templateId: ({ tipo_pagamento }) =>
-        tipo_pagamento === "Finanziamento" ? TEMPLATES.offerta_Finanz : TEMPLATES.offerta,
-      nomeFile: ({ tipo_opportunita, id, yy, nome_referente, cognome_referente, dataOggi }) =>
-        `Offerta ${tipo_opportunita}-${id}-${yy} ${nome_referente} ${cognome_referente} ${dataOggi}`
-    }
-  ],
-
-  // configuration for RES subtypes
-  // se la condizione non viene soddisfatta, viene scelto il modello RES standard
-   DEFAULT: [
-    {
-      templateId: ({ tipo_incentivo, tipo_pagamento }) => {
-        
-        // "ifs for 'presentazione'"
-        
-        if (tipo_incentivo === "PNRR" && tipo_pagamento === "Finanziamento") {
-          return TEMPLATES.presentazione_finanz_PNRR;
-        }
-
-        if (tipo_incentivo === "PNRR") {
-          return TEMPLATES.presentazione_PNRR;
-        }
-
-        if (tipo_incentivo === "REDEN") {
-          return TEMPLATES.presentazione_REDEN;
-        }
-
-        // 2) se è finanziamento → finanziamento
-        if (tipo_pagamento === "Finanziamento") {
-          return TEMPLATES.presentazione_Finanz;
-        }
-
-        // 3) altrimenti → standard
-        return TEMPLATES.presentazione;
-      },
-      nomeFile: ({ nome_referente, cognome_referente }) => `Presentazione offerta Myenergy ${nome_referente} ${cognome_referente}`
-    },
-    {
-      templateId: ({ tipo_incentivo, tipo_pagamento }) => {
-
-        // "ifs for 'offerta'"
-
-        if (tipo_incentivo === "PNRR" && tipo_pagamento === "Finanziamento") {
-          return TEMPLATES.offerta_finanz_PNRR;
-        }
-
-        if (tipo_incentivo === "PNRR") {
-          return TEMPLATES.offerta_PNRR;
-        }
-
-        if (tipo_incentivo === "REDEN") {
-          return TEMPLATES.offerta_REDEN;
-        }
-
-        if (tipo_pagamento === "Finanziamento") {
-          return TEMPLATES.offerta_Finanz;
-        }
-
-      return TEMPLATES.offerta;
-      },
-      nomeFile: ({ tipo_opportunita, id, yy, nome_referente, cognome_referente, dataOggi }) =>
-        `Offerta ${tipo_opportunita}-${id}-${yy} ${nome_referente} ${cognome_referente} ${dataOggi}`
-    }
-  ]
-};
-
-/**
- * Determina i template dei documenti da utilizzare in base al tipo di opportunità e al tipo di pagamento.
- * La logica è interamente definita in DOCUMENT_CONFIG, rendendo il codice future-proof.
- *
- * @param {string} tipo_opportunita - Tipo di opportunità (es. "MAT", "COND", …).
- * @param {string} tipo_pagamento - Tipo di pagamento (es. "Finanziamento", …).
- * @param {string} nome - Nome del cliente.
- * @param {string} cognome - Cognome del cliente.
- * @param {string} dataOggi - Data corrente formattata.
- * @param {string} id - ID dell'offerta.
- * @param {string} yy - Anno.
- * @returns {Array} Array di oggetti contenenti templateId e nomeFile per ogni documento da creare.
- */
-function determineDocumentTemplates(tipo_opportunita, tipo_pagamento, tipo_incentivo, nome_referente, cognome_referente, dataOggi, id, yy) {
-  Logger.log(`Determinazione dei template per tipo_opportunita: ${tipo_opportunita}, tipo_pagamento: ${tipo_pagamento}, tipo_incentivo: ${tipo_incentivo}`);
-  
-  // Raggruppiamo tutti i parametri in un unico oggetto
-  const params = { tipo_opportunita, tipo_pagamento, tipo_incentivo, nome_referente, cognome_referente, dataOggi, id, yy };
-
-  // Se esiste una configurazione specifica per il tipo_opportunita, la usiamo, altrimenti usiamo quella DEFAULT
-  const config = DOCUMENT_CONFIG[tipo_opportunita] || DOCUMENT_CONFIG.DEFAULT;
-
-  // Generiamo l'array dei documenti da creare, valutando le funzioni se presenti
-  const templates = config.map(docConfig => {
-    const templateId = typeof docConfig.templateId === 'function'
-      ? docConfig.templateId(params)
-      : docConfig.templateId;
-    const nomeFile = typeof docConfig.nomeFile === 'function'
-      ? docConfig.nomeFile(params)
-      : docConfig.nomeFile;
-    return { templateId, nomeFile };
-  });
-
-  Logger.log(`Template selezionati: ${JSON.stringify(templates)}`);
-  return templates;
 }
-
-
-
-/**
- * Crea un documento da un template e lo salva in una cartella specificata.
- *
- * @param {string} templateId - ID del template da usare.
- * @param {string} destinationFolderId - ID della cartella di destinazione.
- * @param {string} fileName - Nome del file da creare.
- * @returns {Document} Riferimento al documento creato.
- */
-function createDocumentFromTemplate(templateId, destinationFolderId, fileName) {
-  Logger.log('Creazione del documento da template ID: ' + templateId);
-  const documentCopy = DriveApp.getFileById(templateId).makeCopy(fileName, DriveApp.getFolderById(destinationFolderId));
-  Logger.log('Documento creato: ' + fileName);
-  return DocumentApp.openById(documentCopy.getId());
-}
-
