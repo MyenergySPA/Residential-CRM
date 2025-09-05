@@ -1,11 +1,11 @@
 /**
- * versione 2.0
+ * versione 2.1
  * Inserisce un'immagine (PNG/JPG) presa da Drive (fileId) al posto del placeholder testuale.
  * Esempio placeholder: {{CHART_RITORNO_25_ANNI}}
  * @param {GoogleAppsScript.Document.Document} doc
  * @param {string} placeholder - es. '{{CHART_RITORNO_25_ANNI}}'
  * @param {string} fileId
- * @param {number} maxWidthPt - larghezza massima in punti (facoltativa, es. 430)
+ * @param {number} maxWidthPt - larghezza massima in punti
  * @return {boolean} true se sostituito, altrimenti false
  */
 function insertImageByFileId(doc, placeholder, fileId, maxWidthPt) {
@@ -13,22 +13,36 @@ function insertImageByFileId(doc, placeholder, fileId, maxWidthPt) {
   var rng = body.findText(placeholder);
   if (!rng) return false;
 
-  var el = rng.getElement();
-  var par = el.getParent().asParagraph();
-  var idx = par.getChildIndex(el);
+  var el = rng.getElement().asText();
+  var start = rng.getStartOffset();
+  var end   = rng.getEndOffsetInclusive();
 
-  // rimuovi il testo placeholder
-  el.removeFromParent();
+  // parent e indice
+  var parent = el.getParent();
+  var isParagraph = parent.getType() === DocumentApp.ElementType.PARAGRAPH;
+  var paragraph = isParagraph ? parent.asParagraph() : null;
+  var idx = isParagraph ? paragraph.getChildIndex(el) : 0;
+
+  // rimuovi il placeholder
+  el.deleteText(start, end);
 
   // inserisci immagine
   var blob = DriveApp.getFileById(fileId).getBlob();
-  var inline = par.insertInlineImage(idx, blob);
+  var inline = isParagraph ? paragraph.insertInlineImage(idx + 1, blob)
+                           : parent.appendInlineImage(blob);
 
-  if (maxWidthPt && inline.getWidth() > maxWidthPt) {
-    var ratio = maxWidthPt / inline.getWidth();
-    inline.setWidth(maxWidthPt);
+  if (paragraph) paragraph.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+
+  // scala a larghezza target
+  var target = Number(maxWidthPt || CHART_TARGET_WIDTH_PT) || 0;
+  if (target && inline.getWidth() > target) {
+    var ratio = target / inline.getWidth();
+    inline.setWidth(target);
     inline.setHeight(Math.round(inline.getHeight() * ratio));
   }
+
+  Logger.log('[CHART][FAST] target=%s, finalWidth=%s, placeholder=%s',
+             target, inline.getWidth(), placeholder);
   return true;
 }
 
@@ -71,7 +85,10 @@ function insertCharts(doc, chartMappings) {
   chartMappings.forEach(mapping => {
     const placeholder = mapping.placeholder;
     const chartBlob = mapping.blob;
-    const maxWidth = mapping.maxWidthPx || 360; // default max width if not specified
+    const maxWidth = ('maxWidthPx' in mapping && mapping.maxWidthPx)
+  ? mapping.maxWidthPx
+  : CHART_TARGET_WIDTH_PT; // <-- stesso numero del FAST
+
 
     if (!placeholder || !chartBlob) {
       Logger.log('Skipping invalid mapping: ' + JSON.stringify(mapping));
